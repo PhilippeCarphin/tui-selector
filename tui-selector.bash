@@ -5,6 +5,7 @@
 ################################################################################
 max_height=15
 bottom_margin=0
+debug_log=~/.log.txt
 
 ################################################################################
 # Tables
@@ -41,7 +42,6 @@ message=""
 # Flowcharts
 ################################################################################
 trap "clear-region ; restore-cursor ; output-selected-filename " EXIT
-exec {display_fd}>/dev/tty
 clear-region(){
     buf_clear
     for((y=${region_y0};y<${region_y1};y++)) ; do
@@ -169,7 +169,8 @@ out-from-dir(){
 
 log(){ : ; }
 setup-debug(){
-    exec 2>~/.log.txt
+    exec 2>>${debug_log}
+    exec {display_fd}>/dev/tty
     set -o errexit
     set -o nounset
     set -o errtrace
@@ -283,9 +284,9 @@ main(){
 create-space(){
     local i
     for((i=0; i<$((max_height+${bottom_margin})); i++)) ; do
-       printf "\033[G\n" >&${display_fd}
+       printf "\033[G\n" >&${display_fd:-2}
     done
-    printf "\033[$((max_height+${bottom_margin}))A" >&${display_fd}
+    printf "\033[$((max_height+${bottom_margin}))A" >&${display_fd:-2}
 }
 buf_cmove(){ _buf+=$'\033'"[${2:-};${1}H" ; }
 buf_clear(){ _buf="" ; }
@@ -296,21 +297,22 @@ buf_printf(){
     printf -v s -- "$@"
     _buf+="$s"
 }
-buf_send() { printf "%s" "${_buf}" >&${display_fd} ; }
-hide-cursor(){ printf "\033[?25l" >&${display_fd} ; }
-show-cursor(){ printf "\033[?25h" >&${display_fd} ; }
+buf_send() { printf "%s" "${_buf}" >&${display_fd:-2} ; }
+hide-cursor(){ printf "\033[?25l" >&${display_fd:-2} ; }
+show-cursor(){ printf "\033[?25h" >&${display_fd:-2} ; }
 save-curpos(){
     # TODO: As YSAP showed, we can save-restore the cursor without memorizing
     # its position so maybe we don't need this.
     local s
-    printf "\033[6n" >&${display_fd}
+    printf "\033[6n" >&${display_fd:-2}
     read -s -d R s
     s=${s#*'['} # quoting '[' not necessary but helps vim syntax highligting not get confused
     saved_row=${s%;*}
     saved_col=${s#*;}
 }
 restore-curpos(){
-    printf "\033[%d;%dH" "${saved_row}" "${saved_col}" >&${display_fd}
+    printf "\033[%d;%dH" "${saved_row}" "${saved_col}" >&${display_fd:-2}
+}
 }
 
 
