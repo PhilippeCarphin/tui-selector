@@ -33,7 +33,7 @@ window_start=
 window_end=
 window_height=
 
-#
+# Message area
 message=""
 
 ################################################################################
@@ -48,6 +48,7 @@ clear-region(){
     done
     buf_send
 }
+
 output-selected-filename(){
     if [[ ${window_selected_index} == none ]] ; then
         return
@@ -56,6 +57,7 @@ output-selected-filename(){
     read _ _ _ _ _ _ _ _ filename _ <<<${choices_noansi[window_selected_index]}
     echo "${directory}/${filename}"
 }
+
 restore-cursor(){
     restore-curpos
     show-cursor
@@ -70,9 +72,9 @@ read-data(){
     done
 }
 
-
 display-model(){
     buf_clear
+
     # Display message
     local y=${region_y0}
     buf_cmove ${region_x0} $((y++))
@@ -80,11 +82,9 @@ display-model(){
     buf_printf "Message %s" "${message}"
     message=""
 
-
     # Display current directory
     buf_cmove ${region_x0} $((y++))
     buf_printf "\033[KDirectory: %-20s | Match Expr : %s" "${directory}" "${match_expr}_"
-
 
     # Display current match_expr
     local w=${window_start} color scroll_start scroll_end
@@ -134,8 +134,6 @@ selection-down(){
         window_end=$((window_end+1))
     fi
     window_selected_index=$((window_selected_index + 1))
-
-    log "window_selected_index=${window_selected_index}"
 }
 
 selection-up(){
@@ -147,8 +145,6 @@ selection-up(){
         window_end=$((window_end-1))
     fi
     window_selected_index=$((window_selected_index - 1))
-
-    log "window_selected_index=${window_selected_index}"
 }
 
 into-dir(){
@@ -206,7 +202,6 @@ set-choices(){
             choices_noansi+=("${data_noansi[i]}")
         fi
     done
-    log "nb choices=${#choices[@]}\n"
     set-window
 }
 
@@ -236,8 +231,7 @@ prepare-drawable-region(){
     window_height=$((region_y1 - (region_y0+2) ))
 }
 
-shopt -s checkwinsize
-(:)
+shopt -s checkwinsize ; (:) # Doesn't seem like I can put this in init
 
 init(){
     init-platform
@@ -292,7 +286,6 @@ main(){
         if ! handle-key "$@" ; then
             break
         fi
-        log =====================================================
     done
 }
 
@@ -307,7 +300,6 @@ buf_cmove(){ _buf+=$'\033'"[${2:-};${1}H" ; }
 buf_clear(){ _buf="" ; }
 buf_clearline(){ _buf+=$'\033[2K' ; }
 buf_printf(){
-    : log "printf $*"
     local s=""
     printf -v s -- "$@"
     _buf+="$s"
