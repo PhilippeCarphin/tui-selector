@@ -68,11 +68,10 @@ coproc noansi { gsed --unbuffered -e 's/\x1b\[[0-9;]*m//g' -e 's/\x1b\[2\?K//' ;
 
 read-data(){
     readarray -t data < <(ls -lhrt --color=always "${directory}" | tail -n +2)
-    local i tmp
+    local i
     for((i=0; i<${#data[@]}; i++)) ; do
         echo "${data[i]}" >&${noansi[1]}
-        read -u ${noansi[0]} tmp
-        data_noansi[i]=${tmp}
+        read -u ${noansi[0]} data_noansi[i]
     done
 }
 
