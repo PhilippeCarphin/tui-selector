@@ -57,7 +57,7 @@ output-selected-filename(){
     fi
     local filename
     read _ _ _ _ _ _ _ _ filename _ <<<${choices_noansi[window_selected_index]}
-    echo ${filename}
+    echo "${directory}/${filename}"
 }
 restore-cursor(){
     restore-curpos
@@ -155,13 +155,33 @@ selection-up(){
 }
 
 into-dir(){
-    : TODO
-    log "IMPLEMENT ME"
+    if [[ ${window_selected_index} == none ]] ; then
+        message="into-dir: no item selected"
+        return
+    fi
+
+    read _ _ _ _ _ _ _ _ filename _ <<<${choices_noansi[window_selected_index]}
+    if ! [[ -d ${directory}/${filename} ]] ; then
+        message="into-dir: Current item is not a directory"
+        return
+    fi
+
+    directory=${directory}/${filename}
+    match_expr=""
+    read-data
+    set-choices "${match_expr}"
 }
 
 out-from-dir(){
-    : TODO
-    log "IMPLEMENT ME"
+    local new_dir=$(bash_normpath "${directory}/..")
+    if [[ $(realpath "${new_dir}") == / ]] ; then
+        message="Filesystem root reached"
+        return
+    fi
+    directory="${new_dir}"
+    match_expr=""
+    read-data
+    set-choices "${match_expr}"
 }
 
 
@@ -313,6 +333,37 @@ save-curpos(){
 restore-curpos(){
     printf "\033[%d;%dH" "${saved_row}" "${saved_col}" >&${display_fd:-2}
 }
+
+bash_normpath(){
+    # nullglob makes this function not work and I don't understand why
+    local start_sep=""
+    case "${1}" in
+        ///*) start_sep='/' ;;
+        //*)  start_sep='//' ;;
+        /*)   start_sep='/' ;;
+    esac
+
+    local IFS='/'
+    local new_tokens=()
+    local i=0
+    local tok
+
+    for tok in ${1} ; do
+        if [[ "${tok}" == '.' ]] || [[ "${tok}" == "" ]] ; then
+            continue
+        fi
+        if [[ "${tok}" != '..' ]] \
+            || ( [[ -z "${start_sep}" ]] && (( i == 0 )) ) \
+            || ( (( ${#new_tokens[@]} >= 1)) \
+                 && [[ ${new_tokens[i-1]} == '..' ]] ) ; then
+            new_tokens[i++]=${tok}
+        elif (( i >= 1 )) ; then
+            ((i--))
+            unset new_tokens[i]
+        fi
+    done
+    final="${start_sep:-}${new_tokens[*]}"
+    printf "${final:-.}\n"
 }
 
 
