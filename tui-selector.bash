@@ -21,13 +21,10 @@ region_y1=
 directory=
 data=()
 data_noansi=()
-data_selected_idx=
 
 # Choices
 match_expr=
 choices=()
-choices_selected_idx=()
-choices_idx=()
 choices_noansi=()
 
 # Indices in choices array
@@ -202,12 +199,10 @@ setup-debug(){
 
 set-choices(){
     choices=()
-    choices_idx=()
     choices_noansi=()
     for((i=0;i<${#data[@]};i++)) ; do
         if [[ ${data_noansi[i]} == *${match_expr}* ]] then
             choices+=("${data[i]}")
-            choices_idx+=($i)
             choices_noansi+=("${data_noansi[i]}")
         fi
     done
