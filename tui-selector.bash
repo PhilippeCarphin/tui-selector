@@ -32,6 +32,9 @@ window_start=
 window_end=
 window_height=
 
+#
+message=""
+
 ################################################################################
 # Flowcharts
 ################################################################################
@@ -76,7 +79,9 @@ display-model(){
     # Display message
     local y=${region_y0}
     buf_cmove ${region_x0} $((y++))
-    buf_printf "Message "
+    buf_clearline
+    buf_printf "Message %s" "${message}"
+    message=""
 
 
     # Display current directory
@@ -252,6 +257,9 @@ handle-key(){
                     set-choices
                 fi
                 ;;
+       # TODO: Only for printable chars otherwise, I press C-f and it appends
+       # $'\006' to match_expr
+       $'\006') message="Unhandled key \$'\\006" ;;
        *) match_expr+=${key}
           set-choices ;;
    esac
