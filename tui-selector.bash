@@ -31,7 +31,7 @@ choices_idx=()
 choices_noansi=()
 
 # Indices in choices array
-window_selected_index=2
+window_selected_index=none
 window_start=
 window_end=
 window_height=
