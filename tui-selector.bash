@@ -64,8 +64,6 @@ restore-cursor(){
     show-cursor
 }
 
-coproc noansi { gsed --unbuffered -e 's/\x1b\[[0-9;]*m//g' -e 's/\x1b\[2\?K//' ; }
-
 read-data(){
     readarray -t data < <(ls -lhrt --color=always "${directory}" | tail -n +2)
     local i
@@ -227,6 +225,8 @@ shopt -s checkwinsize
 (:)
 
 init(){
+    init-platform
+    coproc noansi { ${sed:-sed} --unbuffered -e 's/\x1b\[[0-9;]*m//g' -e 's/\x1b\[2\?K//' ; }
     hide-cursor
     directory=${1%/*}
     match_expr=${1##*/}
@@ -316,6 +316,15 @@ restore-curpos(){
 }
 
 
+init-platform(){
+    if [[ $(uname) == Darwin ]] ; then
+        if ! command which gsed ; then
+            printf "This program needs GSED while I find a way to make BSD sed unbuffered\n" >&2
+            exit 1
+        fi
+        sed=${gsed}
+    fi
+}
 
 main "$@"
 
