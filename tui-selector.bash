@@ -92,9 +92,6 @@ display-model(){
     # Display current match_expr
     local w=${window_start} color scroll_start scroll_end
     if [[ "${window_selected_index}" != none ]] ; then
-        if (( ${#choices[@]} == 0 )) ; then
-            log "Unexpected zero number of choices with selected_index != none"
-        fi
         scroll_start=$((window_start + window_start*window_height/${#choices[@]}))
         scroll_end=$((scroll_start + (window_height*window_height)/${#choices[@]}))
         for((w=${window_start}; w<${window_end} ; w++)) ; do
