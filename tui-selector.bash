@@ -4,6 +4,7 @@
 # Config
 ################################################################################
 max_height=15
+bottom_margin=0
 
 ################################################################################
 # Tables
@@ -212,11 +213,7 @@ max(){ if (( $1 > $2 )) ; then echo $1 ; else echo $2 ; fi ; }
 min(){ if (( $1 < $2 )) ; then echo $1 ; else echo $2 ; fi ; }
 
 prepare-drawable-region(){
-    local i
-    for((i=0; i<$((max_height+4)); i++)) ; do
-       printf "\033[G\n" >/dev/tty
-    done
-    printf "\033[$((max_height+4))A" >/dev/tty
+    create-space
     save-curpos
     region_x0=0
     region_x1=$((COLUMNS-1))
@@ -283,6 +280,13 @@ main(){
     done
 }
 
+create-space(){
+    local i
+    for((i=0; i<$((max_height+${bottom_margin})); i++)) ; do
+       printf "\033[G\n" >&${display_fd}
+    done
+    printf "\033[$((max_height+${bottom_margin}))A" >&${display_fd}
+}
 buf_cmove(){ _buf+=$'\033'"[${2:-};${1}H" ; }
 buf_clear(){ _buf="" ; }
 buf_clearline(){ _buf+=$'\033[2K' ; }
