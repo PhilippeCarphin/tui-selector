@@ -1,4 +1,5 @@
-#!/usr/bin/env -S bash -o errexit -o nounset -o errtrace -o pipefail -O inherit_errexit -O nullglob -O extglob
+#!/usr/bin/env bash
+
 ################################################################################
 # Config
 ################################################################################
@@ -168,6 +169,11 @@ out-from-dir(){
 log(){ : ; }
 setup-debug(){
     exec 2>~/.log.txt
+    set -o errexit
+    set -o nounset
+    set -o errtrace
+    set -o pipefail
+    shopt -s inherit_errexit
     log(){
         fmt=$1 ; shift
         printf "${FUNCNAME[1]}: $fmt\n" "$@" >&2
