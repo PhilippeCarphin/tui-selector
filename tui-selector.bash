@@ -177,7 +177,7 @@ set-choices(){
     choices_idx=()
     choices_noansi=()
     for((i=0;i<${#data[@]};i++)) ; do
-        if [[ ${data[i]} == *${match_expr}* ]] then
+        if [[ ${data_noansi[i]} == *${match_expr}* ]] then
             choices+=("${data[i]}")
             choices_idx+=($i)
             choices_noansi+=("${data_noansi[i]}")
