@@ -132,7 +132,7 @@ selection-down(){
         return
     fi
 
-    if (( window_end - window_selected_index < 4  && window_end < ${#choices[@]})) ; then
+    if (( window_end - window_selected_index <= ${scroll_offset}  && window_end < ${#choices[@]})) ; then
         window_start=$((window_start+1))
         window_end=$((window_end+1))
     fi
@@ -145,7 +145,7 @@ selection-up(){
     if (( window_start == 0 && window_selected_index == 0 )) ; then
         return
     fi
-    if (( window_selected_index - window_start < 3  && window_start > 0)) ; then
+    if (( window_selected_index - window_start < ${scroll_offset}  && window_start > 0)) ; then
         window_start=$((window_start-1))
         window_end=$((window_end-1))
     fi
