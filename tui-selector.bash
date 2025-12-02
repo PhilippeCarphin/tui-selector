@@ -74,16 +74,18 @@ read-data(){
 display-model(){
     buf_clear
     # Display message
-    buf_cmove ${region_x0} ${region_y0}
+    local y=${region_y0}
+    buf_cmove ${region_x0} $((y++))
     buf_printf "Message "
 
+
     # Display current directory
-    buf_cmove ${region_x0} $((region_y0 + 1))
+    buf_cmove ${region_x0} $((y++))
     buf_printf "\033[KDirectory: %-20s | Match Expr : %s" "${directory}" "${match_expr}_"
 
 
     # Display current match_expr
-    local w color scroll_start scroll_end
+    local w=${window_start} color scroll_start scroll_end
     if [[ "${window_selected_index}" != none ]] ; then
         if (( ${#choices[@]} == 0 )) ; then
             log "Unexpected zero number of choices with selected_index != none"
@@ -102,20 +104,22 @@ display-model(){
                 color="\033[48;5;19m"
             fi
 
-            local y=$((region_y0+2+w-window_start))
-            buf_cmove ${region_x0} ${y}
-            pad_len=$(( COLUMNS - ${#choices_noansi[w]} - 10))
-            buf_printf "\033[2K${color}%s %s${color}%-${pad_len}s\033[0m" "${scrollbar}" "${choices[w]}" ""
-        done
-        for(( ; w<${window_height}; w++)); do
-            buf_cmove ${region_x0} $((region_y0+2+w-window_start))
-            buf_clearline
+            local pad_len=$(( COLUMNS - ${#choices_noansi[w]}))
+            buf_cmove ${region_x0} $((y++))
+            # buf_clearline # Only necessary if there is no left margin
+            buf_printf "${color}%s %s${color}%-${pad_len}s\033[0m" "${scrollbar}" "${choices[w]}" ""
         done
     else
-        buf_cmove ${region_x0} $((region_y0 + 2))
-        buf_pringf "<< No Choices >>"
+        buf_cmove ${region_x0} $((y++))
+        buf_clearline
+        buf_printf "<< No Choices >>"
     fi
-    buf_cmove ${region_x0} $((region_y0+2+w))
+    for(( ; w<${window_height}; w++)); do
+        buf_cmove ${region_x0} $((y++))
+        buf_clearline
+    done
+    # In case the last choice is longer than the width of the window
+    buf_cmove ${region_x0} ${y}
     buf_printf "\033[K"
 
     buf_send
@@ -186,7 +190,11 @@ set-choices(){
 set-window(){
     if ((${#choices[@]} == 0)) ; then
        window_selected_index=none
+       window_start=0
+       window_end=0
+       return
     fi
+
     window_start=0
     window_selected_index=0
     window_end=${ min ${#choices[@]} ${window_height} ; }
@@ -202,7 +210,7 @@ prepare-drawable-region(){
     done
     printf "\033[$((max_height+4))A" >/dev/tty
     save-curpos
-    region_x0=3
+    region_x0=0
     region_x1=$((COLUMNS-1))
     region_y0=${saved_row}
     region_y1=$((region_y0+max_height))
