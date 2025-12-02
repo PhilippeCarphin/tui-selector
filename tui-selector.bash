@@ -64,7 +64,9 @@ restore-cursor(){
 }
 
 read-data(){
-    readarray -t data < <(ls -lhrt --color=always "${directory}" | tail -n +2)
+    readarray -t data < <(ls -lhrt --color=always "${directory}/" | tail -n +2 | sed 's/\x1b\[0m//g')
+    # Could do readarray -t data < <(ls -lhrt --color=never "${directory}")
+    # but accessing the filesystem twice as much as necessary bums me out
     local i
     for((i=0; i<${#data[@]}; i++)) ; do
         echo "${data[i]}" >&${noansi[1]}
