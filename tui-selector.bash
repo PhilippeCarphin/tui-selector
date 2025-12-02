@@ -8,6 +8,7 @@ max_height=15
 bottom_margin=0
 scroll_offset=3
 debug_log=~/.log.txt
+selection_color=18	# Number from 16 to 255 going into '\033[48;5;___m'
 
 ################################################################################
 # Tables
@@ -124,19 +125,19 @@ display-model(){
 		scroll_end=$((scroll_start+(win_height*win_height)/${#choices[@]}))
 		for((w=${win_start}; w<${win_end} ; w++)) ; do
 
-			local scrollbar=$'\u2592'
+			local scrollbar=$'\033[48;5;237m\u2592'
 			if (( scroll_start <= w)) && ((w <=scroll_end)) ; then
-				scrollbar=$'\u2593'
+				scrollbar=$'\033[48;5;237m\u2593'
 			fi
 
 			local color="\033[48;5;237m"
 			if ((w == win_selected_index)) ; then
-				color="\033[48;5;19m"
+				color="\033[48;5;${selection_color}m"
 			fi
 
 			local pad_len=$(( COLUMNS - ${#choices_noansi[w]}))
 			buf_cmove ${region_x0} $((y++))
-			buf_printf "${color}%s %s${color}%-${pad_len}s\033[0m" \
+			buf_printf "%s${color} %s${color}%-${pad_len}s\033[0m" \
 				   "${scrollbar}" "${choices[w]}" ""
 		done
 	else
