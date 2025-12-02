@@ -39,7 +39,6 @@ message=""
 ################################################################################
 # Flowcharts
 ################################################################################
-trap "clear-region ; restore-cursor ; output-selected-filename " EXIT
 clear-region(){
     buf_clear
     for((y=${region_y0};y<${region_y1};y++)) ; do
@@ -224,6 +223,10 @@ max(){ if (( $1 > $2 )) ; then echo $1 ; else echo $2 ; fi ; }
 min(){ if (( $1 < $2 )) ; then echo $1 ; else echo $2 ; fi ; }
 
 prepare-drawable-region(){
+    if (( LINES < max_height + bottom_margin + 1 )) ; then
+        printf "Window too small\n" >&2
+        return 1
+    fi
     create-space
     save-curpos
     region_x0=0
@@ -241,7 +244,8 @@ init(){
     hide-cursor
     directory=${1%/*}
     match_expr=${1##*/}
-    prepare-drawable-region
+    prepare-drawable-region || return 1
+    trap "clear-region ; restore-cursor ; output-selected-filename " EXIT
     read-data
     set-choices "${match_expr}"
 }
@@ -281,7 +285,7 @@ handle-key(){
 main(){
     setup-debug
 
-    init "$@"
+    init "$@" || return
 
     while : ; do
         display-model
