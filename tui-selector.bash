@@ -277,7 +277,7 @@ main(){
     done
 }
 
-buf_cmove(){ : log "cmove $1 $2"; _buf+=$'\033'"[${2:-};${1}H" ; }
+buf_cmove(){ _buf+=$'\033'"[${2:-};${1}H" ; }
 buf_clear(){ _buf="" ; }
 buf_clearline(){ _buf+=$'\033[2K' ; }
 buf_printf(){
