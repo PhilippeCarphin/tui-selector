@@ -263,7 +263,7 @@ prepare-drawable-region(){
 	create-space
 	save-curpos
 	region_x0=0
-	region_x1=$((COLUMNS-1))
+	region_x1=$((COLUMNS))
 	region_y0=${saved_row}
 	region_y1=$((region_y0+max_height))
 	win_height=$((region_y1 - (region_y0+2) ))
