@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# vim: noet:ts=8:sts=8:sw=8:list:listchars=tab\:\ \ ,trail\:·:
+# vim: noet:ts=8:sts=8:sw=8:list:listchars=tab\:\ \ ,trail\:·,lead\:·:
 
 ################################################################################
 # Config
