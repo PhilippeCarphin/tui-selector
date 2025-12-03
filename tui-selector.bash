@@ -103,18 +103,33 @@ handle-key(){
 
 display-model(){
 	buf_clear
+	printf -v spaces "%$((region_x1-region_x0-2))s"
+	bars=${spaces// /$'\u2550'}
+	log "spaces=${spaces}"
+	local y=${region_y0}
+
+	# Top border
+	buf_cmove ${region_x0} $((y++))
+	buf_printf "\u2554${bars}\u2557"
+
 
 	# Display message
-	local y=${region_y0}
-	buf_cmove ${region_x0} $((y++))
+	buf_cmove ${region_x0} ${y}
 	buf_clearline
-	buf_printf "Message %s" "${message}"
+	buf_printf "\u2551 Message %s" "${message}"
+	buf_cmove ${region_x1} ${y}
+	buf_printf "\u2551"
+	y=$((y+1))
 	message=""
 
 	# Display current directory
-	buf_cmove ${region_x0} $((y++))
-	buf_printf "\033[KDirectory: %-20s | Match Expr : %s" \
+	buf_cmove ${region_x0} ${y}
+	buf_printf "\033[K\u2551 Directory: %-20s | Match Expr : %s" \
 		   "${directory}" "${match_expr}_"
+	buf_cmove ${region_x1} ${y}
+	buf_printf "\u2551"
+	y=$((y+1))
+
 
 	# Display current match_expr
 	local w=${win_start} color scroll_start scroll_end
@@ -134,23 +149,27 @@ display-model(){
 			fi
 
 			local idx=${choices[w]}
-			local pad_len=$(( COLUMNS - ${#data_noansi[idx]}))
+			local pad_len=$(( COLUMNS - ${#data_noansi[idx]} - 4))
 			buf_cmove ${region_x0} $((y++))
-			buf_printf "%s${color} %s${color}%-${pad_len}s\033[0m" \
+			buf_printf "\u2551%s${color} %s${color}%-${pad_len}s\033[0m\u2551" \
 				   "${scrollbar}" "${data[idx]}" ""
 		done
 	else
-		buf_cmove ${region_x0} $((y++))
+		buf_cmove ${region_x0} ${y}
 		buf_clearline
-		buf_printf "<< No Choices >>"
+		buf_printf "\u2551<< No Choices >>"
+		buf_cmove ${region_x1} ${y}
+		buf_printf "\u2551"
+		y=$((y+1))
+		w=$((w+1))
 	fi
 	for(( ; w<${win_height}; w++)); do
 		buf_cmove ${region_x0} $((y++))
-		buf_clearline
+		buf_printf "\u2551${spaces}\u2551"
 	done
 	# In case the last choice is longer than the width of the window
-	buf_cmove ${region_x0} ${y}
-	buf_printf "\033[K"
+	buf_cmove ${region_x0} $((y++))
+	buf_printf "\u255A${bars}\u255D"
 
 	buf_send
 }
@@ -265,7 +284,8 @@ prepare-drawable-region(){
 	region_x1=$((COLUMNS))
 	region_y0=${saved_row}
 	region_y1=$((region_y0+max_height))
-	win_height=$((region_y1 - (region_y0+2) ))
+	# region_height - (top&bottom borders, message, dir+match)
+	win_height=$((region_y1 - region_y0 - 4))
 }
 
 clear-region(){
