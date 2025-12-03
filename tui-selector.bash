@@ -203,12 +203,11 @@ into-dir(){
 }
 
 out-from-dir(){
-	local new_dir=$(bash_normpath "${directory}/..")
-	if [[ $(realpath "${new_dir}") == / ]] ; then
+	if [[ $(realpath "${directory}") == / ]] ; then
 		message="Filesystem root reached"
 		return
 	fi
-	directory="${new_dir}"
+	directory=$(bash_normpath "${directory}/..")
 	match_expr=""
 	read-data
 	set-choices "${match_expr}"
