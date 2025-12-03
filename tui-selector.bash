@@ -46,11 +46,7 @@ shopt -s checkwinsize ; (:) # Doesn't seem like I can put this in init
 init(){
 	setup-debug
 	init-platform
-	coproc noansi {
-		${sed:-sed} --unbuffered \
-			-e 's/\x1b\[[0-9;]*m//g'\
-			-e 's/\x1b\[2\?K//'
-	}
+	coproc noansi { sed -u -e 's/\x1b\[[0-9;]*m//g' -e 's/\x1b\[2\?K//' ; }
 	hide-cursor
 	directory=${1%/*}
 	match_expr=${1##*/}
@@ -390,25 +386,6 @@ bash_normpath(){
 	final="${start_sep:-}${new_tokens[*]}"
 	printf "${final:-.}\n"
 }
-
-
-init-platform(){
-	case $(uname) in
-		Darwin) init-darwin ;;
-		Linux) : ;;
-	esac
-}
-init-darwin(){
-	if command which gsed &>/dev/null ; then
-		sed=gsed
-		return
-	fi
-
-	printf "On MacOS, gsed is needed until I figure out how to " >&2
-	printf "make BSD sed output unbuffered\n" >&2
-	return 1
-}
-
 
 main "$@"
 
