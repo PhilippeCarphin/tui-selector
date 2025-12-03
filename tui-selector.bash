@@ -135,10 +135,11 @@ display-model(){
 				color="\033[48;5;${selection_color}m"
 			fi
 
-			local pad_len=$(( COLUMNS - ${#choices_noansi[w]}))
+			local idx=${choices[w]}
+			local pad_len=$(( COLUMNS - ${#data_noansi[idx]}))
 			buf_cmove ${region_x0} $((y++))
 			buf_printf "%s${color} %s${color}%-${pad_len}s\033[0m" \
-				   "${scrollbar}" "${choices[w]}" ""
+				   "${scrollbar}" "${data[idx]}" ""
 		done
 	else
 		buf_cmove ${region_x0} $((y++))
@@ -191,7 +192,7 @@ into-dir(){
 		return
 	fi
 
-	read _ _ _ _ _ _ _ _ filename _ <<<${choices_noansi[win_selected_index]}
+	read _ _ _ _ _ _ _ _ filename _ <<<${data_noansi[choices[win_selected_index]]}
 	if ! [[ -d ${directory}/${filename} ]] ; then
 		message="into-dir: Current item is not a directory"
 		return
@@ -233,11 +234,9 @@ read-data(){
 
 set-choices(){
 	choices=()
-	choices_noansi=()
 	for((i=0;i<${#data[@]};i++)) ; do
 		if [[ ${data_noansi[i]} == *${match_expr}* ]] then
-			choices+=("${data[i]}")
-			choices_noansi+=("${data_noansi[i]}")
+			choices+=($i)
 		fi
 	done
 	if ((${#choices[@]} == 0)) ; then
@@ -297,7 +296,7 @@ output-selected-filename(){
 		return
 	fi
 	local filename
-	read _ _ _ _ _ _ _ _ filename _ <<<${choices_noansi[win_selected_index]}
+	read _ _ _ _ _ _ _ _ filename _ <<<${data_noansi[choices[win_selected_index]]}
 	echo "${directory}/${filename}"
 }
 
