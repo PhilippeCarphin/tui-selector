@@ -88,10 +88,10 @@ handle-key(){
 				'') break
 			esac ;;
 		$'\177') if [[ -n ${match_expr} ]] ; then
-			match_expr=${match_expr:0: -1}
-			set-choices
-		fi
-		;;
+				match_expr=${match_expr:0: -1}
+				set-choices
+			 fi
+			 ;;
 		# TODO: Only for printable chars otherwise, I press C-f and it
 		# appends $'\006' to match_expr
 		$'\006') message="Unhandled key \$'\\006" ;;
