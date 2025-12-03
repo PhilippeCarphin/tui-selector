@@ -74,7 +74,8 @@ handle-key(){
 	case $key in
 		$'\016') selection-down ;;
 		$'\020') selection-up ;;
-		$'\t')   ;;
+		$'\006'|$'\t') into-dir   ;; # C-f
+		$'\002') out-from-dir ;; # C-b
 		$'\022') exit 124 ;;
 		$'\n') exit 0 ;;
 		$'\E') read -t 0.1 -s -n 2 seq || true
@@ -83,6 +84,7 @@ handle-key(){
 				'[B') selection-down ;;
 				'[C') into-dir ;;
 				'[D') out-from-dir ;;
+				'[Z') out-from-dir ;; # shift tab
 				'') break
 			esac ;;
 		$'\177') if [[ -n ${match_expr} ]] ; then
