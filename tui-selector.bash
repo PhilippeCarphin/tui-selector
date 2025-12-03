@@ -218,7 +218,7 @@ out-from-dir(){
 # Choices and data
 ################################################################################
 read-data(){
-	readarray -t data < <(ls -lhrt --color=always "${directory}/" \
+	readarray -t data < <(ls -lht --color=always "${directory}/" \
 				| tail -n +2 \
 				| sed 's/\x1b\[0m//g')
 	# Could do readarray -t data < <(ls -lhrt --color=never "${directory}")
