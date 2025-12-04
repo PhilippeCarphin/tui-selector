@@ -71,20 +71,21 @@ main(){
 handle-key(){
 	IFS='' read -s -N 1 key
 	case $key in
-		$'\016') selection-down ;;
-		$'\020') selection-up ;;
+		$'\016') selection-down ;; # C-n
+		$'\020') selection-up ;; # C-p
 		$'\006'|$'\t') into-dir   ;; # C-f
 		$'\002') out-from-dir ;; # C-b
-		$'\022') exit 124 ;;
+		$'\v') return 1 ;; # C-k
+		$'\022') exit 124 ;; # C-r
 		$'\n') exit 0 ;;
 		$'\E') read -t 0.1 -s -n 2 seq || true
 			case $seq in
-				'[A') selection-up ;;
-				'[B') selection-down ;;
-				'[C') into-dir ;;
-				'[D') out-from-dir ;;
+				'[A') selection-up ;; # up arrow
+				'[B') selection-down ;; # down arrow
+				'[C') into-dir ;; # right arrow
+				'[D') out-from-dir ;; # left arrow
 				'[Z') out-from-dir ;; # shift tab
-				'') break
+				'') return 1 ;; # Escape key
 			esac ;;
 		$'\177') if [[ -n ${match_expr} ]] ; then
 				match_expr=${match_expr:0: -1}
