@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # vim: noet:ts=8:sts=8:sw=8:list:listchars=tab\:\ \ ,trail\:·,lead\:·:
+shopt -s extglob
 
 ################################################################################
 # Config
@@ -44,7 +45,6 @@ message=""
 shopt -s checkwinsize ; (:) # Doesn't seem like I can put this in init
 
 init(){
-	init-platform
 	coproc noansi { sed -u -e 's/\x1b\[[0-9;]*m//g' -e 's/\x1b\[2\?K//' ; }
 	hide-cursor
 	directory=${1:+${1%/*}}
@@ -68,32 +68,39 @@ main(){
 		fi
 	done
 }
+
 display-help(){
 	local x=$((region_x0+5))
-	local y=$((region_y0+3))
-	local color="\033[45;1;37m"
+	local y=$((region_y0+2))
+	local color="\033[45;37m"
 	local width=57
+	local title="HELP (press any key to exit)"
 	buf_clear
+	printf -v spaces "%$((width))s"
+	local bars=${spaces// /$'\u2500'}
+
 	buf_cmove ${x} $((y++))
-	buf_printf "${color} %-${width}s\033[0m" "HELP (press any key to exit)"
+	buf_printf "${color}\u256D\u2500 \033[4m%s\033[24m %s\u256E\033[0m" "${title}" "${bars:0:width-${#title}-3}"
 	buf_cmove ${x} $((y++))
-	buf_printf "${color} %-${width}s\033[0m" "selection-up:   C-p, up-arrow"
+	buf_printf "${color}\u2502%-${width}s\u2502\033[0m" "selection-up:   C-p, up-arrow"
 	buf_cmove ${x} $((y++))
-	buf_printf "${color} %-${width}s\033[0m" "selection-down: C-p, down-arrow"
+	buf_printf "${color}\u2502%-${width}s\u2502\033[0m" "selection-down: C-p, down-arrow"
 	buf_cmove ${x} $((y++))
-	buf_printf "${color} %-${width}s\033[0m" "into-dir:       C-f, right-arrow, tab"
+	buf_printf "${color}\u2502%-${width}s\u2502\033[0m" "into-dir:       C-f, right-arrow, tab, /"
 	buf_cmove ${x} $((y++))
-	buf_printf "${color} %-${width}s\033[0m" "parent-dir:     C-b, left-arrow, shift-tab"
+	buf_printf "${color}\u2502%-${width}s\u2502\033[0m" "parent-dir:     C-b, left-arrow, shift-tab"
 	buf_cmove ${x} $((y++))
-	buf_printf "${color} %-${width}s\033[0m" "                backspace if match expression is empty"
+	buf_printf "${color}\u2502%-${width}s\u2502\033[0m" "                backspace if match expression is empty"
 	buf_cmove ${x} $((y++))
-	buf_printf "${color} %-${width}s\033[0m" "exit:"
+	buf_printf "${color}\u2502%-${width}s\u2502\033[0m" "exit:"
 	buf_cmove ${x} $((y++))
-	buf_printf "${color} %-${width}s\033[0m" "      with selection: enter"
+	buf_printf "${color}\u2502%-${width}s\u2502\033[0m" "      with selection: enter"
 	buf_cmove ${x} $((y++))
-	buf_printf "${color} %-${width}s\033[0m" "      without selection: ESC, C-c, C-k"
+	buf_printf "${color}\u2502%-${width}s\u2502\033[0m" "      without selection: ESC, C-c, C-k"
 	buf_cmove ${x} $((y++))
-	buf_printf "${color} %-${width}s\033[0m" "add to match expression: Normal keys"
+	buf_printf "${color}\u2502%-${width}s\u2502\033[0m" "add to match expression: Normal keys"
+	buf_cmove ${x} $((y++))
+	buf_printf "${color}\u2570${bars}\u256F\033[0m"
 	buf_send
 }
 
@@ -104,18 +111,21 @@ handle-key(){
 		$'\020') selection-up ;; # C-p
 		$'\006'|$'\t') into-dir   ;; # C-f
 		$'\002') out-from-dir ;; # C-b
-		$'\v') return 1 ;; # C-k
-		$'\022') exit 124 ;; # C-r
+		$'\v') win_selected_index=none ; return 1 ;; # C-k
 		$'\n') exit 0 ;;
-		$'\b') display-help ; read -s -N 1 ;; # C-h (probably depends on stty settings)
-		$'\E') read -t 0.1 -s -n 2 seq || true
+		# Waiting for a key: if the key was an escape sequence, then we
+		# need to swallow anything that came a very short time after
+		# C-h (probably depends on stty settings)
+		$'\b') display-help ; read -s -N 1 ; read -t 0.05 -s _ ;;
+		$'\E') read -t 0.1 -s seq || true
 			case $seq in
 				'[A') selection-up ;; # up arrow
 				'[B') selection-down ;; # down arrow
 				'[C') into-dir ;; # right arrow
 				'[D') out-from-dir ;; # left arrow
 				'[Z') out-from-dir ;; # shift tab
-				'') return 1 ;; # Escape key
+				'') win_selected_index=none ; return 1 ;; # Escape key
+				*) printf -v message "Key is %q" "${seq}" ;;
 			esac ;;
 		$'\177') if [[ -n ${match_expr} ]] ; then
 				match_expr=${match_expr:0: -1}
@@ -124,11 +134,11 @@ handle-key(){
 				out-from-dir
 			 fi
 			 ;;
-		# TODO: Only for printable chars otherwise, I press C-f and it
-		# appends $'\006' to match_expr
-		$'\006') message="Unhandled key \$'\\006" ;;
-		*) match_expr+=${key}
+		/) into-dir ;;
+		'~') directory="$HOME" ; read-data ; set-choices "" ;;
+		[\ -~]) match_expr+=${key}
 			set-choices ;;
+		*) message="Unhandled key $(printf "%q" "${key}")" ;;
 	esac
 	return 0
 }
@@ -309,6 +319,8 @@ clear-region(){
 	buf_send
 }
 
+# Print some newlines to push the current content of the screen upwards, then
+# move the cursor back up by the same amount.
 create-space(){
 	local i
 	for((i=0; i<$((max_height+${bottom_margin})); i++)) ; do
