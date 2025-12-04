@@ -44,7 +44,6 @@ message=""
 shopt -s checkwinsize ; (:) # Doesn't seem like I can put this in init
 
 init(){
-	setup-debug
 	init-platform
 	coproc noansi { sed -u -e 's/\x1b\[[0-9;]*m//g' -e 's/\x1b\[2\?K//' ; }
 	hide-cursor
