@@ -47,8 +47,8 @@ init(){
 	init-platform
 	coproc noansi { sed -u -e 's/\x1b\[[0-9;]*m//g' -e 's/\x1b\[2\?K//' ; }
 	hide-cursor
-	directory=${1%/*}
-	match_expr=${1##*/}
+	directory=${1:+${1%/*}}
+	match_expr=${1:+${1##*/}}
 	prepare-drawable-region || return 1
 	trap "clear-region ; restore-cursor ; output-selected-filename " EXIT
 	read-data
@@ -191,12 +191,12 @@ into-dir(){
 	fi
 
 	read _ _ _ _ _ _ _ _ filename _ <<<${data_noansi[choices[win_selected_index]]}
-	if ! [[ -d ${directory}/${filename} ]] ; then
+	if ! [[ -d ${directory:+${directory}/}${filename} ]] ; then
 		message="into-dir: Current item is not a directory"
 		return
 	fi
 
-	directory=${directory}/${filename}
+	directory=${directory:+${directory}/}${filename}
 	match_expr=""
 	read-data
 	set-choices "${match_expr}"
@@ -207,7 +207,7 @@ out-from-dir(){
 		message="Filesystem root reached"
 		return
 	fi
-	directory=$(bash_normpath "${directory}/..")
+	directory=$(bash_normpath "${directory:+${directory}/}..")
 	match_expr=""
 	read-data
 	set-choices "${match_expr}"
@@ -217,7 +217,7 @@ out-from-dir(){
 # Choices and data
 ################################################################################
 read-data(){
-	readarray -t data < <(ls -lht --color=always "${directory}/" \
+	readarray -t data < <(ls -lht --color=always "${directory:-.}/" \
 				| tail -n +2 \
 				| sed 's/\x1b\[0m//g')
 	# Could do readarray -t data < <(ls -lhrt --color=never "${directory}")
@@ -294,7 +294,7 @@ output-selected-filename(){
 	fi
 	local filename
 	read _ _ _ _ _ _ _ _ filename _ <<<${data_noansi[choices[win_selected_index]]}
-	echo "${directory}/${filename}"
+	echo "${directory:+${directory}/}${filename}"
 }
 
 ################################################################################
