@@ -50,6 +50,7 @@ init(){
 	directory=${1:+${1%/*}}
 	match_expr=${1:+${1##*/}}
 	prepare-drawable-region || return 1
+	# trap "win_selected_index=none ; trap INT ; exit 130" INT
 	trap "clear-region ; restore-cursor ; output-selected-filename " EXIT
 	read-data
 	set-choices "${match_expr}"
@@ -67,6 +68,34 @@ main(){
 		fi
 	done
 }
+display-help(){
+	local x=$((region_x0+5))
+	local y=$((region_y0+3))
+	local color="\033[45;1;37m"
+	local width=57
+	buf_clear
+	buf_cmove ${x} $((y++))
+	buf_printf "${color} %-${width}s\033[0m" "HELP (press any key to exit)"
+	buf_cmove ${x} $((y++))
+	buf_printf "${color} %-${width}s\033[0m" "selection-up:   C-p, up-arrow"
+	buf_cmove ${x} $((y++))
+	buf_printf "${color} %-${width}s\033[0m" "selection-down: C-p, down-arrow"
+	buf_cmove ${x} $((y++))
+	buf_printf "${color} %-${width}s\033[0m" "into-dir:       C-f, right-arrow, tab"
+	buf_cmove ${x} $((y++))
+	buf_printf "${color} %-${width}s\033[0m" "parent-dir:     C-b, left-arrow, shift-tab"
+	buf_cmove ${x} $((y++))
+	buf_printf "${color} %-${width}s\033[0m" "                backspace if match expression is empty"
+	buf_cmove ${x} $((y++))
+	buf_printf "${color} %-${width}s\033[0m" "exit:"
+	buf_cmove ${x} $((y++))
+	buf_printf "${color} %-${width}s\033[0m" "      with selection: enter"
+	buf_cmove ${x} $((y++))
+	buf_printf "${color} %-${width}s\033[0m" "      without selection: ESC, C-c, C-k"
+	buf_cmove ${x} $((y++))
+	buf_printf "${color} %-${width}s\033[0m" "add to match expression: Normal keys"
+	buf_send
+}
 
 handle-key(){
 	IFS='' read -s -N 1 key
@@ -78,6 +107,7 @@ handle-key(){
 		$'\v') return 1 ;; # C-k
 		$'\022') exit 124 ;; # C-r
 		$'\n') exit 0 ;;
+		$'\b') display-help ; read -s -N 1 ;; # C-h (probably depends on stty settings)
 		$'\E') read -t 0.1 -s -n 2 seq || true
 			case $seq in
 				'[A') selection-up ;; # up arrow
@@ -90,6 +120,8 @@ handle-key(){
 		$'\177') if [[ -n ${match_expr} ]] ; then
 				match_expr=${match_expr:0: -1}
 				set-choices
+			 else
+				out-from-dir
 			 fi
 			 ;;
 		# TODO: Only for printable chars otherwise, I press C-f and it
