@@ -25,6 +25,7 @@ directory=
 hidden_files=
 data=()
 data_noansi=()
+data_trunc=()
 
 # Choices
 match_expr=
@@ -236,8 +237,8 @@ display-model(){
 			local idx=${choices[w]}
 			local pad_len=$(( width - ${#data_noansi[idx]} - 2))
 			buf_cmove ${region_x0} $((y++))
-			buf_printf "\u2551%s${color} %s${color}%-${pad_len}s\033[0m\u2551" \
-				   "${scrollbar}" "${data[idx]}" ""
+			buf_printf "\u2551%s${color} %s${color}s\033[0m\u2551" \
+				   "${scrollbar}" "${data_trunc[idx]}"
 		done
 	else
 		buf_cmove ${region_x0} ${y}
@@ -381,9 +382,16 @@ read-data(){
 	readarray -t data < <(ls -lht ${hidden_files:+-A} --color=always "${directory:-.}/" \
 				| tail -n +2 \
 				| sed -e 's/\x1b\[0m//g' -e 's/\x1b\[39;49m/\x1b\[39m/')
-	# Doing LS twice is sad but not as sad as how slow the above loop is
-	# when there are thousands of files in the directory.
-	readarray -t data_noansi < <(ls -lht "${directory:-.}/" | tail -n +2)
+	# Could do readarray -t data < <(ls -lhrt --color=never "${directory}")
+	# but accessing the filesystem twice as much as necessary bums me out
+	width=$((region_x1-region_x0-5))
+	local i
+	for((i=0; i<${#data[@]}; i++)) ; do
+		echo "${data[i]}" >&${noansi[1]}
+		read -u ${noansi[0]} data_noansi[i]
+		local tidx=$(ansi-truncation-idx "${data[i]}" ${width})
+		data_trunc[i]=${data[i]:0:tidx}
+	done
 }
 
 set-choices(){
@@ -566,6 +574,28 @@ bash_normpath(){
 	printf "${final:-.}\n"
 }
 
+ansi-truncation-idx(){
+	local input_string="$1"
+	local target_width=$2
+	local i=0
+	local n_printable=0
+	while : ; do
+		c=${input_string:i:1}
+		if [[ ${c} == $'\033' ]] ; then
+			while [[ ${input_string:i:1} != m ]] ; do
+				i=$((i+1))
+			done
+		else
+			n_printable=$((n_printable+1))
+		fi
+		i=$((i+1))
+		if ((n_printable == target_width)) ; then
+			break
+		fi
+	done
+	echo ${i}
+}
+
 main "$@"
 
 # NOTES
@@ -583,3 +613,37 @@ main "$@"
 #            = j_start + win_height*win_height/#choices + win_start
 #            = win_start*win_height/#choices + win_height*win_height/#choices
 #            = scroll_start + win_height*win_height/#choices
+#
+# = ANSI CHARACTERS AND LENGTH =
+#
+# To get a nice box, by setting a background color, we need every line to be
+# the same display width.  Which means we either need to pad or truncate
+# strings.
+#
+# When reading data, we can store data=(...) and data_noansi=(...) so we have
+# access to the non-ansi-length of the full strings.
+#
+# - Padding -
+#
+# Suppose data_noansi[idx] is smaller than the target width, then we can print
+# data[idx] and add this many spaces: $((width - ${#data_noansi[idx]}))
+#
+# - Truncating -
+#
+# If the string is too wide:
+#
+# ${#data_noansi[idx]} > width, then
+# t=$((${#data_noansi[idx] - width)) > 0 and this is how many *printable*
+# characters we need to remove.
+#
+# We can't simply print s1=${data[idx]:0:width} because the display of this
+# string is likely going to be too short.
+#
+# We can also remove t characters from the end of data[idx] but if data[idx]
+# ends with an ansi sequence, then we won't be removing enough *printable* chars
+# and the string will be too long.
+#
+# So finding where to cut data[idx] so that it's printable length is equal to
+# width is not easy.  It is in fact not hard, but it's harder than the padding
+# case.
+#
