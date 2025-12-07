@@ -263,7 +263,7 @@ out-from-dir(){
 read-data(){
 	readarray -t data < <(ls -lht ${hidden_files:+-A} --color=always "${directory:-.}/" \
 				| tail -n +2 \
-				| sed 's/\x1b\[0m//g')
+				| sed -e 's/\x1b\[0m//g' -e 's/\x1b\[39;49m/\x1b\[39m/')
 	# Could do readarray -t data < <(ls -lhrt --color=never "${directory}")
 	# but accessing the filesystem twice as much as necessary bums me out
 	local i
