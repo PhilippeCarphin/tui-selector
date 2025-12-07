@@ -22,6 +22,7 @@ region_y1=
 
 # data
 directory=
+hidden_files=
 data=()
 data_noansi=()
 
@@ -117,6 +118,7 @@ handle-key(){
 		# need to swallow anything that came a very short time after
 		# C-h (probably depends on stty settings)
 		$'\b') display-help ; read -s -N 1 ; read -t 0.05 -s _ ;;
+		$'\004') toggle-hidden-files ;;
 		$'\E') read -t 0.1 -s seq || true
 			case $seq in
 				'[A') selection-up ;; # up arrow
@@ -259,7 +261,7 @@ out-from-dir(){
 # Choices and data
 ################################################################################
 read-data(){
-	readarray -t data < <(ls -lht --color=always "${directory:-.}/" \
+	readarray -t data < <(ls -lht ${hidden_files:+-A} --color=always "${directory:-.}/" \
 				| tail -n +2 \
 				| sed 's/\x1b\[0m//g')
 	# Could do readarray -t data < <(ls -lhrt --color=never "${directory}")
@@ -288,6 +290,17 @@ set-choices(){
 	win_start=0
 	win_selected_index=0
 	win_end=${ min ${#choices[@]} ${win_height} ; }
+}
+
+toggle-hidden-files(){
+	if [[ -z ${hidden_files} ]] ; then
+		hidden_files=yes
+	else
+		hidden_files=""
+	fi
+	message="Set hidden files to '${hidden_files}'"
+	read-data
+	set-choices "${match_expr}"
 }
 
 max(){ if (( $1 > $2 )) ; then echo $1 ; else echo $2 ; fi ; }
