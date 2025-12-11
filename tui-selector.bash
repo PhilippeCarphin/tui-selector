@@ -111,7 +111,7 @@ handle-key(){
 		$'\020') selection-up ;; # C-p
 		$'\006'|$'\t') into-dir   ;; # C-f
 		$'\002') out-from-dir ;; # C-b
-		$'\v') win_selected_index=none ; return 1 ;; # C-k
+		$'\v'|$'\a') win_selected_index=none ; return 1 ;; # C-k, C-g
 		$'\n') exit 0 ;;
 		# Waiting for a key: if the key was an escape sequence, then we
 		# need to swallow anything that came a very short time after
