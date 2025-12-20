@@ -173,7 +173,7 @@ handle-key(){
 				match_expr=${match_expr:0: -1}
 				set-choices
 			 else
-				out-from-dir
+				migrate-directory-component-to-match-expr
 			 fi
 			 ;;
 		/) into-dir ;;
@@ -283,6 +283,11 @@ selection-up(){
 }
 
 into-dir(){
+	if [[ ${match_expr} == .. ]] ; then
+		out-from-dir
+		return
+	fi
+
 	if [[ ${win_selected_index} == none ]] ; then
 		message="into-dir: no item selected"
 		return
@@ -309,6 +314,27 @@ out-from-dir(){
 	match_expr=""
 	read-data
 	set-choices "${match_expr}"
+}
+
+migrate-directory-component-to-match-expr(){
+	local IFS='/'
+	local tokens=(${directory})
+	if ((${#tokens[@]} > 0 )) ; then
+		if [[ ${tokens[-1]} == .. ]] ; then
+			match_expr=''
+		else
+			match_expr=${tokens[-1]}
+		fi
+
+		unset 'tokens[-1]'
+		if ((${#tokens[@]} == 1)) && [[ ${tokens[0]} == "" ]] ; then
+			directory="/"
+		else
+			directory="${tokens[*]}"
+		fi
+		read-data
+		set-choices "${match_expr}"
+	fi
 }
 
 ################################################################################
