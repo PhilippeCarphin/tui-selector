@@ -40,6 +40,19 @@ win_height=
 # Message area
 message=""
 
+help_lines=(
+	"selection-up:   C-p, up-arrow"
+	"selection-down: C-p, down-arrow"
+	"into-dir:       C-f, right-arrow, tab, /"
+	"parent-dir:     C-b, left-arrow, shift-tab"
+	"toggle-hidden:  C-d"
+	""
+	"exit with selection:     enter"
+	"exit without selection:  ESC, C-c, C-k"
+	"add to match expression: Normal keys"
+)
+help_win_height=${#help_lines[@]}
+
 ################################################################################
 # Flowcharts
 ################################################################################
@@ -70,42 +83,69 @@ main(){
 	done
 }
 
+help_window=
 display-help(){
 	local x=$((region_x0+5))
 	local y=$((region_y0+2))
 	local color="\033[45;37m"
-	local width=57
+	local width=60
 	local title="HELP (press any key to exit)"
 	buf_clear
-	printf -v spaces "%$((width))s"
+	printf -v spaces "%$((width-2))s"
 	local bars=${spaces// /$'\u2500'}
+	log "help_win_start=%s, help_win_end=%s" "${help_win_start}" "${help_win_end}"
 
 	buf_cmove ${x} $((y++))
-	buf_printf "${color}\u256D\u2500 \033[4m%s\033[24m %s\u256E\033[0m" "${title}" "${bars:0:width-${#title}-3}"
+	buf_printf "${color}\u256D\u2500 \033[4m%s\033[24m %s\u256E\033[0m" "${title}" "${bars:0:width-${#title}-5}"
+	help_scroll_start=$((help_win_start+help_win_start*help_win_height/${#help_lines[@]}))
+	help_scroll_end=$((help_scroll_start+(help_win_height*help_win_height)/${#help_lines[@]}))
+	for((i=${help_win_start};i<help_win_end;i++)) ; do
+		local scrollbar=$'\u2592'
+		if (( help_scroll_start <= i)) && ((i <=help_scroll_end)) ; then
+			scrollbar=$'\u2593'
+		fi
+		buf_cmove ${x} $((y++))
+		buf_printf "${color}\u2502${scrollbar} %-$((width-4))s\u2502\033[0m" "${help_lines[i]}" 
+	done
 	buf_cmove ${x} $((y++))
-	buf_printf "${color}\u2502%-${width}s\u2502\033[0m" "selection-up:   C-p, up-arrow"
+	buf_printf "${color}\u251C${bars}\u2524\033[0m"
 	buf_cmove ${x} $((y++))
-	buf_printf "${color}\u2502%-${width}s\u2502\033[0m" "selection-down: C-p, down-arrow"
-	buf_cmove ${x} $((y++))
-	buf_printf "${color}\u2502%-${width}s\u2502\033[0m" "into-dir:       C-f, right-arrow, tab, /"
-	buf_cmove ${x} $((y++))
-	buf_printf "${color}\u2502%-${width}s\u2502\033[0m" "parent-dir:     C-b, left-arrow, shift-tab"
-	buf_cmove ${x} $((y++))
-	buf_printf "${color}\u2502%-${width}s\u2502\033[0m" "                backspace if match expression is empty"
-	buf_cmove ${x} $((y++))
-	buf_printf "${color}\u2502%-${width}s\u2502\033[0m" "exit:"
-	buf_cmove ${x} $((y++))
-	buf_printf "${color}\u2502%-${width}s\u2502\033[0m" "      with selection: enter"
-	buf_cmove ${x} $((y++))
-	buf_printf "${color}\u2502%-${width}s\u2502\033[0m" "      without selection: ESC, C-c, C-k"
-	buf_cmove ${x} $((y++))
-	buf_printf "${color}\u2502%-${width}s\u2502\033[0m" "add to match expression: Normal keys"
+	buf_printf "${color}\u2502 %-$((width-3))s\u2502\033[0m" "Scroll with C-n,C-p or arrow keys q,C-h to quit" 
 	buf_cmove ${x} $((y++))
 	buf_printf "${color}\u2570${bars}\u256F\033[0m"
 	buf_send
 }
 
+help-loop(){
+	local help_win_start=0
+	local help_win_end=$(min $((help_win_height)) ${#help_lines[@]})
+	while : ; do
+		display-help
+		if ! help-handle-key ; then
+			break
+		fi
+	done
+}
+
+help-handle-key(){
+	local key
+	IFS='' read -s -N 1 key
+	log 'key pressed: %q' "${key}"
+	case $key in
+		$'\016') help-selection-down ;; # C-p
+		$'\020') help-selection-up ;; # C-p
+		$'\E') read -t 0.1 -s seq || true
+			case $seq in
+				'[A') help-selection-up ;; # up arrow
+				'[B') help-selection-down ;; # down arrow
+			esac ;;
+		q|$'\b') return 1 ;;
+	esac
+}
+
+
 handle-key(){
+	local key
 	IFS='' read -s -N 1 key
 	case $key in
 		$'\016') selection-down ;; # C-n
@@ -117,7 +157,7 @@ handle-key(){
 		# Waiting for a key: if the key was an escape sequence, then we
 		# need to swallow anything that came a very short time after
 		# C-h (probably depends on stty settings)
-		$'\b') display-help ; read -s -N 1 ; read -t 0.05 -s _ ;;
+		$'\b') help-loop ;;
 		$'\004') toggle-hidden-files ;;
 		$'\E') read -t 0.1 -s seq || true
 			case $seq in
@@ -214,6 +254,20 @@ selection-down(){
 		win_end=$((win_end+1))
 	fi
 	win_selected_index=$((win_selected_index + 1))
+}
+
+help-selection-down(){
+	if ((help_win_end < ${#help_lines[@]} )) ; then
+		help_win_start=$((help_win_start+1))
+		help_win_end=$((help_win_end+1))
+	fi
+}
+
+help-selection-up(){
+	if (( 0 < help_win_start )) ; then
+		help_win_start=$((help_win_start-1))
+		help_win_end=$((help_win_end-1))
+	fi
 }
 
 selection-up(){
@@ -321,6 +375,7 @@ prepare-drawable-region(){
 	region_y0=${saved_row}
 	region_y1=$((region_y0+max_height))
 	win_height=$((region_y1 - (region_y0+2) ))
+	help_win_height=$((region_y1 - region_y0 - 8))
 }
 
 clear-region(){
