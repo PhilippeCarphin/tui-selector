@@ -25,8 +25,9 @@ directory=
 hidden_files=
 data=()
 data_noansi=()
+data_trunc=()
 
-# Choices
+# List of indices into data/data_noansi parallel arrays
 match_expr=
 choices=()
 choices_noansi=()
@@ -64,7 +65,7 @@ init(){
 	directory=${1:+${1%/*}}
 	match_expr=${1:+${1##*/}}
 	prepare-drawable-region || return 1
-	# trap "win_selected_index=none ; trap INT ; exit 130" INT
+	trap "win_selected_index=none ; trap INT ; exit 130" INT
 	trap "clear-region ; restore-cursor ; output-selected-filename " EXIT
 	read-data
 	set-choices "${match_expr}"
@@ -83,7 +84,6 @@ main(){
 	done
 }
 
-help_window=
 display-help(){
 	local x=$((region_x0+5))
 	local y=$((region_y0+2))
@@ -97,6 +97,7 @@ display-help(){
 
 	buf_cmove ${x} $((y++))
 	buf_printf "${color}\u256D\u2500 \033[4m%s\033[24m %s\u256E\033[0m" "${title}" "${bars:0:width-${#title}-5}"
+	# Exact same calculation for scrollbar as for the regular display
 	help_scroll_start=$((help_win_start+help_win_start*help_win_height/${#help_lines[@]}))
 	help_scroll_end=$((help_scroll_start+(help_win_height*help_win_height)/${#help_lines[@]}))
 	for((i=${help_win_start};i<help_win_end;i++)) ; do
@@ -176,7 +177,7 @@ handle-key(){
 				migrate-directory-component-to-match-expr
 			 fi
 			 ;;
-		/) into-dir ;;
+		/) slash-into-dir ;;
 		'~') directory="$HOME" ; read-data ; set-choices "" ;;
 		[\ -~]) match_expr+=${key}
 			set-choices ;;
@@ -190,6 +191,7 @@ display-model(){
 
 	# Display message
 	local y=${region_y0}
+	local width=$((region_x1 - region_x0))
 	buf_cmove ${region_x0} $((y++))
 	buf_clearline
 	buf_printf "Message %s" "${message}"
@@ -218,7 +220,7 @@ display-model(){
 			fi
 
 			local idx=${choices[w]}
-			local pad_len=$(( COLUMNS - ${#data_noansi[idx]}))
+			local pad_len=$(( width - ${#data_noansi[idx]}))
 			buf_cmove ${region_x0} $((y++))
 			buf_printf "%s${color} %s${color}%-${pad_len}s\033[0m" \
 				   "${scrollbar}" "${data[idx]}" ""
@@ -282,6 +284,18 @@ selection-up(){
 	win_selected_index=$((win_selected_index - 1))
 }
 
+slash-into-dir(){
+	if [[ ${directory} == "" ]] && [[ ${match_expr} == "" ]] ; then
+		directory="/"
+		match_expr=""
+		read-data
+		set-choices "${match_expr}"
+	else
+		into-dir
+	fi
+}
+
+
 into-dir(){
 	if [[ ${match_expr} == .. ]] ; then
 		out-from-dir
@@ -299,7 +313,11 @@ into-dir(){
 		return
 	fi
 
-	directory=${directory:+${directory}/}${filename}
+	if [[ ${directory} == '/' ]] ; then
+		directory=${directory}${filename}
+	else
+		directory=${directory:+${directory}/}${filename}
+	fi
 	match_expr=""
 	read-data
 	set-choices "${match_expr}"
@@ -341,6 +359,7 @@ migrate-directory-component-to-match-expr(){
 # Choices and data
 ################################################################################
 read-data(){
+    log "directory=%s" "${directory}"
 	readarray -t data < <(ls -lht ${hidden_files:+-A} --color=always "${directory:-.}/" \
 				| tail -n +2 \
 				| sed -e 's/\x1b\[0m//g' -e 's/\x1b\[39;49m/\x1b\[39m/')
@@ -389,6 +408,9 @@ min(){ if (( $1 < $2 )) ; then echo $1 ; else echo $2 ; fi ; }
 ################################################################################
 # Region handling
 ################################################################################
+# trap 'log %s%s printf "\033[1;1H\033[2J" ; (:) ; init ; log "IMPLEMENT sigwinch"' SIGWINCH
+trap 'log %s%s printf "\033[1;1H\033[2J" ; (:) ; init ; log "IMPLEMENT sigwinch" ; display-model' SIGWINCH
+
 prepare-drawable-region(){
 	if (( LINES < max_height + bottom_margin + 1 )) ; then
 		printf "Window too small\n" >&2
