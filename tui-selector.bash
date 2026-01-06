@@ -237,8 +237,8 @@ display-model(){
 			local idx=${choices[w]}
 			local pad_len=$(( width - ${#data_noansi[idx]} - 2))
 			buf_cmove ${region_x0} $((y++))
-			buf_printf "\u2551%s${color} %s${color}s\033[0m\u2551" \
-				   "${scrollbar}" "${data_trunc[idx]}"
+			buf_printf "\u2551%s${color} %s${color}%-${pad_len}s\033[0m\u2551" \
+				   "${scrollbar}" "${data_trunc[idx]}" ""
 		done
 	else
 		buf_cmove ${region_x0} ${y}
@@ -384,7 +384,7 @@ read-data(){
 				| sed -e 's/\x1b\[0m//g' -e 's/\x1b\[39;49m/\x1b\[39m/')
 	# Could do readarray -t data < <(ls -lhrt --color=never "${directory}")
 	# but accessing the filesystem twice as much as necessary bums me out
-	width=$((region_x1-region_x0-5))
+	width=$((region_x1-region_x0-4))
 	local i
 	for((i=0; i<${#data[@]}; i++)) ; do
 		echo "${data[i]}" >&${noansi[1]}
