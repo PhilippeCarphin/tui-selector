@@ -388,7 +388,7 @@ set-choices(){
 
 	win_start=0
 	win_selected_index=0
-	win_end=${ min ${#choices[@]} ${win_height} ; }
+	win_end=$(min ${#choices[@]} ${win_height})
 }
 
 toggle-hidden-files(){
