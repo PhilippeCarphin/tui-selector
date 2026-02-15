@@ -176,7 +176,7 @@ handle-key(){
 				migrate-directory-component-to-match-expr
 			 fi
 			 ;;
-		/) into-dir ;;
+		/) slash-into-dir ;;
 		'~') directory="$HOME" ; read-data ; set-choices "" ;;
 		[\ -~]) match_expr+=${key}
 			set-choices ;;
@@ -281,6 +281,18 @@ selection-up(){
 	fi
 	win_selected_index=$((win_selected_index - 1))
 }
+
+slash-into-dir(){
+	if [[ ${directory} == "" ]] && [[ ${match_expr} == "" ]] ; then
+		directory="/"
+		match_expr=""
+		read-data
+		set-choices "${match_expr}"
+	else
+		into-dir
+	fi
+}
+
 
 into-dir(){
 	if [[ ${match_expr} == .. ]] ; then
