@@ -312,7 +312,12 @@ into-dir(){
 		return
 	fi
 
-	directory=${directory:+${directory}/}${filename}
+	# Prevent from having two slashes when entering a directory from root
+	if [[ ${directory} == '/' ]] ; then
+		directory=${directory}${filename}
+	else
+		directory=${directory:+${directory}/}${filename}
+	fi
 	match_expr=""
 	read-data
 	set-choices "${match_expr}"
