@@ -60,7 +60,6 @@ shopt -s checkwinsize ; (:) # Doesn't seem like I can put this in init
 
 init(){
 	check-window-size || return 1
-	coproc noansi { sed -u -e 's/\x1b\[[0-9;]*m//g' -e 's/\x1b\[2\?K//' ; }
 	hide-cursor
 	directory=${1:+${1%/*}}
 	match_expr=${1:+${1##*/}}
@@ -363,13 +362,9 @@ read-data(){
 	readarray -t data < <(ls -lht ${hidden_files:+-A} --color=always "${directory:-.}/" \
 				| tail -n +2 \
 				| sed -e 's/\x1b\[0m//g' -e 's/\x1b\[39;49m/\x1b\[39m/')
-	# Could do readarray -t data < <(ls -lhrt --color=never "${directory}")
-	# but accessing the filesystem twice as much as necessary bums me out
-	local i
-	for((i=0; i<${#data[@]}; i++)) ; do
-		echo "${data[i]}" >&${noansi[1]}
-		read -u ${noansi[0]} data_noansi[i]
-	done
+	# Doing LS twice is sad but not as sad as how slow the above loop is
+	# when there are thousands of files in the directory.
+	readarray -t data_noansi < <(ls -lht "${directory:-.}/" | tail -n +2)
 }
 
 set-choices(){
