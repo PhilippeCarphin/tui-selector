@@ -375,7 +375,7 @@ read-data(){
 set-choices(){
 	choices=()
 	for((i=0;i<${#data[@]};i++)) ; do
-		if [[ ${data_noansi[i]} == *${match_expr}* ]] then
+		if [[ ${data_noansi[i]} == *${match_expr}* ]] ; then
 			choices+=($i)
 		fi
 	done
