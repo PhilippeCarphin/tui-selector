@@ -516,7 +516,6 @@ restore-cursor(){
 # Utility functions
 ################################################################################
 bash_normpath(){
-	# nullglob makes this function not work and I don't understand why
 	local start_sep=""
 	case "${1}" in
 		///*) start_sep='/' ;;
@@ -540,7 +539,8 @@ bash_normpath(){
 						new_tokens[i++]=${tok}
 					elif (( i >= 1 )) ; then
 						((i--))
-						unset new_tokens[i]
+						# See tests/BASH_tests/surprise-globbing
+						unset 'new_tokens[i]'
 		fi
 	done
 	final="${start_sep:-}${new_tokens[*]}"
