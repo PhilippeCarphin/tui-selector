@@ -59,11 +59,12 @@ help_win_height=${#help_lines[@]}
 shopt -s checkwinsize ; (:) # Doesn't seem like I can put this in init
 
 init(){
+	check-window-size || return 1
 	coproc noansi { sed -u -e 's/\x1b\[[0-9;]*m//g' -e 's/\x1b\[2\?K//' ; }
 	hide-cursor
 	directory=${1:+${1%/*}}
 	match_expr=${1:+${1##*/}}
-	prepare-drawable-region || return 1
+	prepare-drawable-region
 	# trap "win_selected_index=none ; trap INT ; exit 130" INT
 	trap "clear-region ; restore-cursor ; output-selected-filename " EXIT
 	read-data
@@ -407,11 +408,18 @@ min(){ if (( $1 < $2 )) ; then echo $1 ; else echo $2 ; fi ; }
 ################################################################################
 # Region handling
 ################################################################################
-prepare-drawable-region(){
-	if (( LINES < max_height + bottom_margin + 1 )) ; then
-		printf "Window too small\n" >&2
+check-window-size(){
+	if [[ -z ${LINES} ]] || [[ -z ${COLUMNS} ]] ; then
+		echo "Something is wrong with your shell, the variables LINES and COLUMNS are not defined" >/dev/tty
 		return 1
 	fi
+	if (( LINES < max_height + bottom_margin + 1 )) ; then
+		printf "${0##*/}: Window too small\n" >/dev/tty
+		return 1
+	fi
+}
+
+prepare-drawable-region(){
 	create-space
 	save-curpos
 	region_x0=0
