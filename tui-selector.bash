@@ -190,6 +190,7 @@ display-model(){
 
 	# Display message
 	local y=${region_y0}
+	local width=$((region_x1 - region_x0))
 	buf_cmove ${region_x0} $((y++))
 	buf_clearline
 	buf_printf "Message %s" "${message}"
@@ -218,7 +219,7 @@ display-model(){
 			fi
 
 			local idx=${choices[w]}
-			local pad_len=$(( COLUMNS - ${#data_noansi[idx]}))
+			local pad_len=$((width - ${#data_noansi[idx]}))
 			buf_cmove ${region_x0} $((y++))
 			buf_printf "%s${color} %s${color}%-${pad_len}s\033[0m" \
 				   "${scrollbar}" "${data[idx]}" ""
