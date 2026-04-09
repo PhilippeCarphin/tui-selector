@@ -53,6 +53,23 @@ help_lines=(
 )
 help_win_height=${#help_lines[@]}
 
+declare -gA key_map=(
+	# C-qwertyuiop
+	[$'\021']="C-q" [$'\027']="C-w" [$'\005']="C-e" [$'\022']="C-r"
+	[$'\024']="C-t" [$'\031']="C-y" [$'\025']="C-u" [$'\t']="C-i/TAB"
+	[$'\017']="C-o" [$'\020']="C-p"
+
+	# C-asdfghjkl
+	[$'\001']="C-a" [$'\023']="C-s" [$'\004']="C-d" [$'\006']="C-f"
+	[$'\a']="C-g" [$'\b']="C-h" [$'\n']="C-j/Enter" [$'\v']="C-k"
+	[$'\f']="C-l"
+
+	# C-zxcvbnm,./
+	[$'\032']="C-z" [$'\030']="C-x" [$'\003']="C-c" [$'\026']="C-v"
+	[$'\002']="C-b" [$'\016']="C-n" [$'\n']="C-m" [$'\,']="," [$'\.']="."
+	[$'\037']="C-/"
+)
+
 ################################################################################
 # Flowcharts
 ################################################################################
@@ -135,7 +152,7 @@ help-handle-key(){
 	IFS='' read -s -N 1 key
 	log 'key pressed: %q' "${key}"
 	case $key in
-		$'\016') help-selection-down ;; # C-p
+		$'\016') help-selection-down ;; # C-n
 		$'\020') help-selection-up ;; # C-p
 		$'\E') read -t 0.1 -s seq || true
 			case $seq in
@@ -182,9 +199,15 @@ handle-key(){
 			 ;;
 		/) slash-into-dir ;;
 		'~') directory="$HOME" ; read-data ; set-choices "" ;;
-		[\ -~]) match_expr+=${key}
+		[\ -~]) # Space to Tilde
+			match_expr+=${key}
 			set-choices ;;
-		*) message="Unhandled key $(printf "%q" "${key}")" ;;
+		*) if [[ -n ${key_map[$key]:-} ]] ; then
+			message="Unhandled key $(printf "%q" "${key_map[$key]}")"
+		else
+			message="Unhandled key $(printf "%q" "$key")"
+		fi
+		;;
 	esac
 	return 0
 }
