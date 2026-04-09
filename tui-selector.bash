@@ -59,13 +59,16 @@ help_win_height=${#help_lines[@]}
 shopt -s checkwinsize ; (:) # Doesn't seem like I can put this in init
 
 init(){
+	local saved_stty_settings=$(stty -g)
 	check-window-size || return 1
 	hide-cursor
+	stty intr '' # We handle C-c to exit ourselves
 	directory=${1:+${1%/*}}
 	match_expr=${1:+${1##*/}}
 	prepare-drawable-region
 	# trap "win_selected_index=none ; trap INT ; exit 130" INT
 	trap "clear-region ; restore-cursor ; output-selected-filename " EXIT
+	trap "clear-region ; restore-cursor ; output-selected-filename ; stty '${saved_stty_settings}' ; trap TERM ; trap EXIT ; exit 0" EXIT TERM
 	read-data
 	set-choices "${match_expr}"
 }
@@ -152,6 +155,7 @@ handle-key(){
 		$'\020') selection-up ;; # C-p
 		$'\006'|$'\t') into-dir   ;; # C-f
 		$'\002') out-from-dir ;; # C-b
+		$'\003') win_selected_index=none ; return 1 ;; # C-c
 		$'\v'|$'\a') win_selected_index=none ; return 1 ;; # C-k, C-g
 		$'\n') exit 0 ;;
 		# Waiting for a key: if the key was an escape sequence, then we
