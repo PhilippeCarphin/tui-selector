@@ -113,7 +113,6 @@ display-help(){
 	buf_clear
 	printf -v spaces "%$((width-2))s"
 	local bars=${spaces// /$'\u2500'}
-	log "help_win_start=%s, help_win_end=%s" "${help_win_start}" "${help_win_end}"
 
 	buf_cmove ${x} $((y++))
 	buf_printf "${color}\u256D\u2500 \033[4m%s\033[24m %s\u256E\033[0m" "${title}" "${bars:0:width-${#title}-5}"
@@ -150,7 +149,6 @@ help-loop(){
 help-handle-key(){
 	local key
 	IFS='' read -s -N 1 key
-	log 'key pressed: %q' "${key}"
 	case $key in
 		$'\016') help-selection-down ;; # C-n
 		$'\020') help-selection-up ;; # C-p
