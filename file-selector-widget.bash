@@ -1,12 +1,13 @@
 
 file-selector-widget(){
+    local this_dir=$(cd -P $(dirname ${BASH_SOURCE[0]}) && pwd)
     local rl_args=($READLINE_LINE)
     if (( ${#rl_args[@]} == 0 )) || [[ ${READLINE_LINE} == *' ' ]] ; then
         rl_args+=('')
     fi
 
     local result
-    result=$(tui-selector.bash "${rl_args[-1]}")
+    result=$(${this_dir}/tui-selector.bash "${rl_args[-1]}")
 
     rl_args[-1]=${result}
 
