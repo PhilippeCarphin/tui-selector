@@ -7,7 +7,9 @@ file-selector-widget(){
     fi
 
     local result
-    result=$(${this_dir}/tui-selector.bash "${rl_args[-1]}")
+    if ! result=$(${this_dir}/tui-selector.bash "${rl_args[-1]}") ; then
+        return
+    fi
 
     rl_args[-1]=${result}
 

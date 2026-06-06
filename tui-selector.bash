@@ -69,6 +69,7 @@ declare -gA key_map=(
 	[$'\002']="C-b" [$'\016']="C-n" [$'\n']="C-m" [$'\,']="," [$'\.']="."
 	[$'\037']="C-/"
 )
+saved_stty_settings=
 
 ################################################################################
 # Flowcharts
@@ -76,16 +77,14 @@ declare -gA key_map=(
 shopt -s checkwinsize ; (:) # Doesn't seem like I can put this in init
 
 init(){
-	local saved_stty_settings=$(stty -g)
+	saved_stty_settings=$(stty -g)
 	check-window-size || return 1
 	hide-cursor
 	stty intr '' # We handle C-c to exit ourselves
 	directory=${1:+${1%/*}}
 	match_expr=${1:+${1##*/}}
 	prepare-drawable-region
-	# trap "win_selected_index=none ; trap INT ; exit 130" INT
-	trap "clear-region ; restore-cursor ; output-selected-filename " EXIT
-	trap "clear-region ; restore-cursor ; output-selected-filename ; stty '${saved_stty_settings}' ; trap TERM ; trap EXIT ; exit 0" EXIT TERM
+	trap "atexit" EXIT TERM
 	read-data
 	set-choices "${match_expr}"
 }
@@ -570,6 +569,20 @@ bash_normpath(){
 	done
 	final="${start_sep:-}${new_tokens[*]}"
 	printf "${final:-.}\n"
+}
+
+atexit(){
+	clear-region
+	restore-cursor
+	output-selected-filename
+	stty "${saved_stty_settings}"
+	trap TERM
+	trap EXIT
+	if [[ ${win_selected_index} == none ]] ; then
+		exit 1
+	else
+		exit 0
+	fi
 }
 
 main "$@"
