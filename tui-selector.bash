@@ -5,42 +5,42 @@ shopt -s extglob
 ################################################################################
 # Config
 ################################################################################
-max_height=15
-bottom_margin=0
-scroll_offset=3
-debug_log=~/.log.txt
-selection_color=18	# Number from 16 to 255 going into '\033[48;5;___m'
+MAX_HEIGHT=15
+BOTTOM_MARGIN=0
+SCROLL_OFFSET=3
+DEBUG_LOG=~/.log.txt
+SELECTION_COLOR=18	# Number from 16 to 255 going into '\033[48;5;___m'
 
 ################################################################################
 # Tables
 ################################################################################
 
-region_x0=
-region_x1=
-region_y0=
-region_y1=
+REGION_X0=
+REGION_X1=
+REGION_Y0=
+REGION_Y1=
 
 # data
-directory=
-hidden_files=
-data=()
-data_noansi=()
+DIRECTORY=
+HIDDEN_FILES=
+DATA=()
+DATA_NOANSI=()
 
 # Choices
-match_expr=
-choices=()
-choices_noansi=()
+MATCH_EXPR=
+CHOICES=()
+CHOICES_NOANSI=()
 
 # Indices in choices array
-win_selected_index=none
-win_start=
-win_end=
-win_height=
+WIN_SELECTED_INDEX=none
+WIN_START=
+WIN_END=
+WIN_HEIGHT=
 
 # Message area
-message=""
+MESSAGE=""
 
-help_lines=(
+HELP_LINES=(
 	"selection-up:   C-p, up-arrow"
 	"selection-down: C-p, down-arrow"
 	"into-dir:       C-f, right-arrow, tab, /"
@@ -51,7 +51,7 @@ help_lines=(
 	"exit without selection:  ESC, C-c, C-k"
 	"add to match expression: Normal keys"
 )
-help_win_height=${#help_lines[@]}
+HELP_WIN_HEIGHT=${#HELP_LINES[@]}
 
 declare -gA key_map=(
 	# C-qwertyuiop
@@ -81,12 +81,12 @@ init(){
 	check-window-size || return 1
 	hide-cursor
 	stty intr '' # We handle C-c to exit ourselves
-	directory=${1:+${1%/*}}
-	match_expr=${1:+${1##*/}}
+	DIRECTORY=${1:+${1%/*}}
+	MATCH_EXPR=${1:+${1##*/}}
 	prepare-drawable-region
 	trap "atexit" EXIT TERM
 	read-data
-	set-choices "${match_expr}"
+	set-choices "${MATCH_EXPR}"
 }
 
 main(){
@@ -104,8 +104,8 @@ main(){
 
 help_window=
 display-help(){
-	local x=$((region_x0+5))
-	local y=$((region_y0+2))
+	local x=$((REGION_X0+5))
+	local y=$((REGION_Y0+2))
 	local color="\033[45;37m"
 	local width=60
 	local title="HELP (press any key to exit)"
@@ -115,15 +115,15 @@ display-help(){
 
 	buf_cmove ${x} $((y++))
 	buf_printf "${color}\u256D\u2500 \033[4m%s\033[24m %s\u256E\033[0m" "${title}" "${bars:0:width-${#title}-5}"
-	help_scroll_start=$((help_win_start+help_win_start*help_win_height/${#help_lines[@]}))
-	help_scroll_end=$((help_scroll_start+(help_win_height*help_win_height)/${#help_lines[@]}))
+	help_scroll_start=$((help_win_start+help_win_start*HELP_WIN_HEIGHT/${#HELP_LINES[@]}))
+	help_scroll_end=$((help_scroll_start+(HELP_WIN_HEIGHT*HELP_WIN_HEIGHT)/${#HELP_LINES[@]}))
 	for((i=${help_win_start};i<help_win_end;i++)) ; do
 		local scrollbar=$'\u2592'
 		if (( help_scroll_start <= i)) && ((i <=help_scroll_end)) ; then
 			scrollbar=$'\u2593'
 		fi
 		buf_cmove ${x} $((y++))
-		buf_printf "${color}\u2502${scrollbar} %-$((width-4))s\u2502\033[0m" "${help_lines[i]}" 
+		buf_printf "${color}\u2502${scrollbar} %-$((width-4))s\u2502\033[0m" "${HELP_LINES[i]}" 
 	done
 	buf_cmove ${x} $((y++))
 	buf_printf "${color}\u251C${bars}\u2524\033[0m"
@@ -136,7 +136,7 @@ display-help(){
 
 help-loop(){
 	local help_win_start=0
-	local help_win_end=$(min $((help_win_height)) ${#help_lines[@]})
+	local help_win_end=$(min $((HELP_WIN_HEIGHT)) ${#HELP_LINES[@]})
 	while : ; do
 		display-help
 		if ! help-handle-key ; then
@@ -169,8 +169,8 @@ handle-key(){
 		$'\020') selection-up ;; # C-p
 		$'\006'|$'\t') into-dir   ;; # C-f
 		$'\002') out-from-dir ;; # C-b
-		$'\003') win_selected_index=none ; return 1 ;; # C-c
-		$'\v'|$'\a') win_selected_index=none ; return 1 ;; # C-k, C-g
+		$'\003') WIN_SELECTED_INDEX=none ; return 1 ;; # C-c
+		$'\v'|$'\a') WIN_SELECTED_INDEX=none ; return 1 ;; # C-k, C-g
 		$'\n') exit 0 ;;
 		# Waiting for a key: if the key was an escape sequence, then we
 		# need to swallow anything that came a very short time after
@@ -184,25 +184,25 @@ handle-key(){
 				'[C') into-dir ;; # right arrow
 				'[D') out-from-dir ;; # left arrow
 				'[Z') out-from-dir ;; # shift tab
-				'') win_selected_index=none ; return 1 ;; # Escape key
-				*) printf -v message "Key is %q" "${seq}" ;;
+				'') WIN_SELECTED_INDEX=none ; return 1 ;; # Escape key
+				*) printf -v MESSAGE "Key is %q" "${seq}" ;;
 			esac ;;
-		$'\177') if [[ -n ${match_expr} ]] ; then
-				match_expr=${match_expr:0: -1}
+		$'\177') if [[ -n ${MATCH_EXPR} ]] ; then
+				MATCH_EXPR=${MATCH_EXPR:0: -1}
 				set-choices
 			 else
 				migrate-directory-component-to-match-expr
 			 fi
 			 ;;
 		/) slash-into-dir ;;
-		'~') directory="$HOME" ; read-data ; set-choices "" ;;
+		'~') DIRECTORY="$HOME" ; read-data ; set-choices "" ;;
 		[\ -~]) # Space to Tilde
-			match_expr+=${key}
+			MATCH_EXPR+=${key}
 			set-choices ;;
 		*) if [[ -n ${key_map[$key]:-} ]] ; then
-			message="Unhandled key $(printf "%q" "${key_map[$key]}")"
+			MESSAGE="Unhandled key $(printf "%q" "${key_map[$key]}")"
 		else
-			message="Unhandled key $(printf "%q" "$key")"
+			MESSAGE="Unhandled key $(printf "%q" "$key")"
 		fi
 		;;
 	esac
@@ -212,25 +212,25 @@ handle-key(){
 display-model(){
 	buf_clear
 
-	# Display message
-	local y=${region_y0}
-	local width=$((region_x1 - region_x0))
-	buf_cmove ${region_x0} $((y++))
+	# Display MESSAGE
+	local y=${REGION_Y0}
+	local width=$((REGION_X1 - REGION_X0))
+	buf_cmove ${REGION_X0} $((y++))
 	buf_clearline
-	buf_printf "Message %s" "${message}"
-	message=""
+	buf_printf "Message %s" "${MESSAGE}"
+	MESSAGE=""
 
 	# Display current directory
-	buf_cmove ${region_x0} $((y++))
+	buf_cmove ${REGION_X0} $((y++))
 	buf_printf "\033[KDirectory: %-20s | Match Expr : %s" \
-		   "${directory}" "${match_expr}_"
+		   "${DIRECTORY}" "${MATCH_EXPR}_"
 
-	# Display current match_expr
-	local w=${win_start} color scroll_start scroll_end
-	if [[ "${win_selected_index}" != none ]] ; then
-		scroll_start=$((win_start+win_start*win_height/${#choices[@]}))
-		scroll_end=$((scroll_start+(win_height*win_height)/${#choices[@]}))
-		for((w=${win_start}; w<${win_end} ; w++)) ; do
+	# Display current match expr
+	local w=${WIN_START} color scroll_start scroll_end
+	if [[ "${WIN_SELECTED_INDEX}" != none ]] ; then
+		scroll_start=$((WIN_START+WIN_START*WIN_HEIGHT/${#CHOICES[@]}))
+		scroll_end=$((scroll_start+(WIN_HEIGHT*WIN_HEIGHT)/${#CHOICES[@]}))
+		for((w=${WIN_START}; w<${WIN_END} ; w++)) ; do
 
 			local scrollbar=$'\033[48;5;237m\u2592'
 			if (( scroll_start <= w)) && ((w <=scroll_end)) ; then
@@ -238,27 +238,27 @@ display-model(){
 			fi
 
 			local color="\033[48;5;237m"
-			if ((w == win_selected_index)) ; then
-				color="\033[48;5;${selection_color}m"
+			if ((w == WIN_SELECTED_INDEX)) ; then
+				color="\033[48;5;${SELECTION_COLOR}m"
 			fi
 
-			local idx=${choices[w]}
-			local pad_len=$((width - ${#data_noansi[idx]}))
-			buf_cmove ${region_x0} $((y++))
+			local idx=${CHOICES[w]}
+			local pad_len=$((width - ${#DATA_NOANSI[idx]}))
+			buf_cmove ${REGION_X0} $((y++))
 			buf_printf "%s${color} %s${color}%-${pad_len}s\033[0m" \
-				   "${scrollbar}" "${data[idx]}" ""
+				   "${scrollbar}" "${DATA[idx]}" ""
 		done
 	else
-		buf_cmove ${region_x0} $((y++))
+		buf_cmove ${REGION_X0} $((y++))
 		buf_clearline
 		buf_printf "<< No Choices >>"
 	fi
-	for(( ; w<${win_height}; w++)); do
-		buf_cmove ${region_x0} $((y++))
+	for(( ; w<${WIN_HEIGHT}; w++)); do
+		buf_cmove ${REGION_X0} $((y++))
 		buf_clearline
 	done
 	# In case the last choice is longer than the width of the window
-	buf_cmove ${region_x0} ${y}
+	buf_cmove ${REGION_X0} ${y}
 	buf_printf "\033[K"
 
 	buf_send
@@ -268,21 +268,21 @@ display-model(){
 # Movement functions
 ################################################################################
 selection-down(){
-	if (( win_end == ${#choices[@]}
-	      && win_selected_index + 1 == win_end )) ; then
+	if (( WIN_END == ${#CHOICES[@]}
+	      && WIN_SELECTED_INDEX + 1 == WIN_END )) ; then
 		return
 	fi
 
-	if (( win_end - win_selected_index <= ${scroll_offset}
-	      && win_end < ${#choices[@]})) ; then
-		win_start=$((win_start+1))
-		win_end=$((win_end+1))
+	if (( WIN_END - WIN_SELECTED_INDEX <= ${SCROLL_OFFSET}
+	      && WIN_END < ${#CHOICES[@]})) ; then
+		WIN_START=$((WIN_START+1))
+		WIN_END=$((WIN_END+1))
 	fi
-	win_selected_index=$((win_selected_index + 1))
+	WIN_SELECTED_INDEX=$((WIN_SELECTED_INDEX + 1))
 }
 
 help-selection-down(){
-	if ((help_win_end < ${#help_lines[@]} )) ; then
+	if ((help_win_end < ${#HELP_LINES[@]} )) ; then
 		help_win_start=$((help_win_start+1))
 		help_win_end=$((help_win_end+1))
 	fi
@@ -296,23 +296,23 @@ help-selection-up(){
 }
 
 selection-up(){
-	if (( win_start == 0 && win_selected_index == 0 )) ; then
+	if (( WIN_START == 0 && WIN_SELECTED_INDEX == 0 )) ; then
 		return
 	fi
-	if (( win_selected_index - win_start < ${scroll_offset}
-	      && win_start > 0)) ; then
-		win_start=$((win_start-1))
-		win_end=$((win_end-1))
+	if (( WIN_SELECTED_INDEX - WIN_START < ${SCROLL_OFFSET}
+	      && WIN_START > 0)) ; then
+		WIN_START=$((WIN_START-1))
+		WIN_END=$((WIN_END-1))
 	fi
-	win_selected_index=$((win_selected_index - 1))
+	WIN_SELECTED_INDEX=$((WIN_SELECTED_INDEX - 1))
 }
 
 slash-into-dir(){
-	if [[ ${directory} == "" ]] && [[ ${match_expr} == "" ]] ; then
-		directory="/"
-		match_expr=""
+	if [[ ${DIRECTORY} == "" ]] && [[ ${MATCH_EXPR} == "" ]] ; then
+		DIRECTORY="/"
+		MATCH_EXPR=""
 		read-data
-		set-choices "${match_expr}"
+		set-choices "${MATCH_EXPR}"
 	else
 		into-dir
 	fi
@@ -320,62 +320,62 @@ slash-into-dir(){
 
 
 into-dir(){
-	if [[ ${match_expr} == .. ]] ; then
+	if [[ ${MATCH_EXPR} == .. ]] ; then
 		out-from-dir
 		return
 	fi
 
-	if [[ ${win_selected_index} == none ]] ; then
-		message="into-dir: no item selected"
+	if [[ ${WIN_SELECTED_INDEX} == none ]] ; then
+		MESSAGE="into-dir: no item selected"
 		return
 	fi
 
-	read _ _ _ _ _ _ _ _ filename _ <<<${data_noansi[choices[win_selected_index]]}
-	if ! [[ -d ${directory:+${directory}/}${filename} ]] ; then
-		message="into-dir: Current item is not a directory"
+	read _ _ _ _ _ _ _ _ filename _ <<<${DATA_NOANSI[CHOICES[WIN_SELECTED_INDEX]]}
+	if ! [[ -d ${DIRECTORY:+${DIRECTORY}/}${filename} ]] ; then
+		MESSAGE="into-dir: Current item is not a directory"
 		return
 	fi
 
-	# Prevent from having two slashes when entering a directory from root
-	if [[ ${directory} == '/' ]] ; then
-		directory=${directory}${filename}
+	# Prevent from having two slashes when entering a DIRECTORY from root
+	if [[ ${DIRECTORY} == '/' ]] ; then
+		DIRECTORY=${DIRECTORY}${filename}
 	else
-		directory=${directory:+${directory}/}${filename}
+		DIRECTORY=${DIRECTORY:+${DIRECTORY}/}${filename}
 	fi
-	match_expr=""
+	MATCH_EXPR=""
 	read-data
-	set-choices "${match_expr}"
+	set-choices "${MATCH_EXPR}"
 }
 
 out-from-dir(){
-	if [[ $(realpath "${directory}") == / ]] ; then
-		message="Filesystem root reached"
+	if [[ $(realpath "${DIRECTORY}") == / ]] ; then
+		MESSAGE="Filesystem root reached"
 		return
 	fi
-	directory=$(bash_normpath "${directory:+${directory}/}..")
-	match_expr=""
+	DIRECTORY=$(bash_normpath "${DIRECTORY:+${DIRECTORY}/}..")
+	MATCH_EXPR=""
 	read-data
-	set-choices "${match_expr}"
+	set-choices "${MATCH_EXPR}"
 }
 
 migrate-directory-component-to-match-expr(){
 	local IFS='/'
-	local tokens=(${directory})
+	local tokens=(${DIRECTORY})
 	if ((${#tokens[@]} > 0 )) ; then
 		if [[ ${tokens[-1]} == .. ]] ; then
-			match_expr=''
+			MATCH_EXPR=''
 		else
-			match_expr=${tokens[-1]}
+			MATCH_EXPR=${tokens[-1]}
 		fi
 
 		unset 'tokens[-1]'
 		if ((${#tokens[@]} == 1)) && [[ ${tokens[0]} == "" ]] ; then
-			directory="/"
+			DIRECTORY="/"
 		else
-			directory="${tokens[*]}"
+			DIRECTORY="${tokens[*]}"
 		fi
 		read-data
-		set-choices "${match_expr}"
+		set-choices "${MATCH_EXPR}"
 	fi
 }
 
@@ -383,42 +383,42 @@ migrate-directory-component-to-match-expr(){
 # Choices and data
 ################################################################################
 read-data(){
-	readarray -t data < <(ls -lht ${hidden_files:+-A} --color=always "${directory:-.}/" \
+	readarray -t DATA < <(ls -lht ${HIDDEN_FILES:+-A} --color=always "${DIRECTORY:-.}/" \
 				| tail -n +2 \
 				| sed -e 's/\x1b\[0m//g' -e 's/\x1b\[39;49m/\x1b\[39m/')
 	# Doing LS twice is sad but not as sad as how slow the above loop is
 	# when there are thousands of files in the directory.
-	readarray -t data_noansi < <(ls -lht "${directory:-.}/" | tail -n +2)
+	readarray -t DATA_NOANSI < <(ls -lht "${DIRECTORY:-.}/" | tail -n +2)
 }
 
 set-choices(){
-	choices=()
-	for((i=0;i<${#data[@]};i++)) ; do
-		if [[ ${data_noansi[i]} == *${match_expr}* ]] ; then
-			choices+=($i)
+	CHOICES=()
+	for((i=0;i<${#DATA[@]};i++)) ; do
+		if [[ ${DATA_NOANSI[i]} == *${MATCH_EXPR}* ]] ; then
+			CHOICES+=($i)
 		fi
 	done
-	if ((${#choices[@]} == 0)) ; then
-		win_selected_index=none
-		win_start=0
-		win_end=0
+	if ((${#CHOICES[@]} == 0)) ; then
+		WIN_SELECTED_INDEX=none
+		WIN_START=0
+		WIN_END=0
 		return
 	fi
 
-	win_start=0
-	win_selected_index=0
-	win_end=$(min ${#choices[@]} ${win_height})
+	WIN_START=0
+	WIN_SELECTED_INDEX=0
+	WIN_END=$(min ${#CHOICES[@]} ${WIN_HEIGHT})
 }
 
 toggle-hidden-files(){
-	if [[ -z ${hidden_files} ]] ; then
-		hidden_files=yes
+	if [[ -z ${HIDDEN_FILES} ]] ; then
+		HIDDEN_FILES=yes
 	else
-		hidden_files=""
+		HIDDEN_FILES=""
 	fi
-	message="Set hidden files to '${hidden_files}'"
+	MESSAGE="Set hidden files to '${HIDDEN_FILES}'"
 	read-data
-	set-choices "${match_expr}"
+	set-choices "${MATCH_EXPR}"
 }
 
 max(){ if (( $1 > $2 )) ; then echo $1 ; else echo $2 ; fi ; }
@@ -432,7 +432,7 @@ check-window-size(){
 		echo "Something is wrong with your shell, the variables LINES and COLUMNS are not defined" >/dev/tty
 		return 1
 	fi
-	if (( LINES < max_height + bottom_margin + 1 )) ; then
+	if (( LINES < MAX_HEIGHT + BOTTOM_MARGIN + 1 )) ; then
 		printf "${0##*/}: Window too small\n" >/dev/tty
 		return 1
 	fi
@@ -441,18 +441,18 @@ check-window-size(){
 prepare-drawable-region(){
 	create-space
 	save-curpos
-	region_x0=0
-	region_x1=$((COLUMNS))
-	region_y0=${saved_row}
-	region_y1=$((region_y0+max_height))
-	win_height=$((region_y1 - (region_y0+2) ))
-	help_win_height=$((region_y1 - region_y0 - 8))
+	REGION_X0=0
+	REGION_X1=$((COLUMNS))
+	REGION_Y0=${saved_row}
+	REGION_Y1=$((REGION_Y0+MAX_HEIGHT))
+	WIN_HEIGHT=$((REGION_Y1 - (REGION_Y0+2) ))
+	HELP_WIN_HEIGHT=$((REGION_Y1 - REGION_Y0 - 8))
 }
 
 clear-region(){
 	buf_clear
-	for((y=${region_y0};y<${region_y1};y++)) ; do
-		buf_cmove ${region_x0} ${y}
+	for((y=${REGION_Y0};y<${REGION_Y1};y++)) ; do
+		buf_cmove ${REGION_X0} ${y}
 		buf_clearline
 	done
 	buf_send
@@ -462,22 +462,22 @@ clear-region(){
 # move the cursor back up by the same amount.
 create-space(){
 	local i
-	for((i=0; i<$((max_height+${bottom_margin})); i++)) ; do
+	for((i=0; i<$((MAX_HEIGHT+${BOTTOM_MARGIN})); i++)) ; do
 		printf "\033[G\n" >&${display_fd:-2}
 	done
-	printf "\033[$((max_height+${bottom_margin}))A" >&${display_fd:-2}
+	printf "\033[$((MAX_HEIGHT+${BOTTOM_MARGIN}))A" >&${display_fd:-2}
 }
 
 ################################################################################
 # Exit handler
 ################################################################################
 output-selected-filename(){
-	if [[ ${win_selected_index} == none ]] ; then
+	if [[ ${WIN_SELECTED_INDEX} == none ]] ; then
 		return
 	fi
 	local filename
-	read _ _ _ _ _ _ _ _ filename _ <<<${data_noansi[choices[win_selected_index]]}
-	echo "${directory:+${directory}/}${filename}"
+	read _ _ _ _ _ _ _ _ filename _ <<<${DATA_NOANSI[CHOICES[WIN_SELECTED_INDEX]]}
+	echo "${DIRECTORY:+${DIRECTORY}/}${filename}"
 }
 
 ################################################################################
@@ -485,7 +485,7 @@ output-selected-filename(){
 ################################################################################
 log(){ : ; }
 setup-debug(){
-	exec 2>>${debug_log}
+	exec 2>>${DEBUG_LOG}
 	exec {display_fd}>/dev/tty
 	set -o errexit
 	set -o nounset
@@ -578,7 +578,7 @@ atexit(){
 	stty "${saved_stty_settings}"
 	trap TERM
 	trap EXIT
-	if [[ ${win_selected_index} == none ]] ; then
+	if [[ ${WIN_SELECTED_INDEX} == none ]] ; then
 		exit 1
 	else
 		exit 0
