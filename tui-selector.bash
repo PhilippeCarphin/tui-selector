@@ -81,8 +81,11 @@ init(){
 	check-window-size || return 1
 	hide-cursor
 	stty intr '' # We handle C-c to exit ourselves
-	DIRECTORY=${1:+${1%/*}}
-	MATCH_EXPR=${1:+${1##*/}}
+	local path=${1:-}
+	if [[ ${path} == */* ]] ; then
+		DIRECTORY=${path%/*}
+	fi
+	MATCH_EXPR=${path##*/}
 	prepare-drawable-region
 	trap "atexit" EXIT TERM
 	read-data
