@@ -105,7 +105,6 @@ main(){
 	done
 }
 
-help_window=
 display-help(){
 	local x=$((REGION_X0+5))
 	local y=$((REGION_Y0+2))
