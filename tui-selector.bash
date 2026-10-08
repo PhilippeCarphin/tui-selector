@@ -545,6 +545,10 @@ output-selected-filename(){
 ################################################################################
 log(){ : ; }
 setup-debug(){
+	if [[ -z ${TUI_SELECTOR_DEBUG} ]] ; then
+		exec 2>/dev/null
+	fi
+
 	exec 2>>${DEBUG_LOG}
 	exec {display_fd}>/dev/tty
 	set -o errexit
