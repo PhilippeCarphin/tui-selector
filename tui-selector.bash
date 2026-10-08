@@ -162,13 +162,14 @@ help-handle-key(){
 	esac
 }
 
-
 handle-key(){
 	local key
 	IFS='' read -s -N 1 key
 	case $key in
 		$'\016') selection-down ;; # C-n
+		$'\004') selection-down 4 ;;
 		$'\020') selection-up ;; # C-p
+		$'\025') selection-up 4 ;;
 		$'\006'|$'\t') into-dir   ;; # C-f
 		$'\002') out-from-dir ;; # C-b
 		$'\003') WIN_SELECTED_INDEX=none ; return 1 ;; # C-c
@@ -270,17 +271,20 @@ display-model(){
 # Movement functions
 ################################################################################
 selection-down(){
-	if (( WIN_END == ${#CHOICES[@]}
-	      && WIN_SELECTED_INDEX + 1 == WIN_END )) ; then
-		return
-	fi
+	local i
+	for((i=0;i<${1:-1};i++)); do
+		if (( WIN_END == ${#CHOICES[@]}
+		      && WIN_SELECTED_INDEX + 1 == WIN_END )) ; then
+			return
+		fi
 
-	if (( WIN_END - WIN_SELECTED_INDEX <= ${SCROLL_OFFSET}
-	      && WIN_END < ${#CHOICES[@]})) ; then
-		WIN_START=$((WIN_START+1))
-		WIN_END=$((WIN_END+1))
-	fi
-	WIN_SELECTED_INDEX=$((WIN_SELECTED_INDEX + 1))
+		if (( WIN_END - WIN_SELECTED_INDEX <= ${SCROLL_OFFSET}
+		      && WIN_END < ${#CHOICES[@]})) ; then
+			WIN_START=$((WIN_START+1))
+			WIN_END=$((WIN_END+1))
+		fi
+		WIN_SELECTED_INDEX=$((WIN_SELECTED_INDEX + 1))
+	done
 }
 
 help-selection-down(){
@@ -298,15 +302,18 @@ help-selection-up(){
 }
 
 selection-up(){
-	if (( WIN_START == 0 && WIN_SELECTED_INDEX == 0 )) ; then
-		return
-	fi
-	if (( WIN_SELECTED_INDEX - WIN_START < ${SCROLL_OFFSET}
-	      && WIN_START > 0)) ; then
-		WIN_START=$((WIN_START-1))
-		WIN_END=$((WIN_END-1))
-	fi
-	WIN_SELECTED_INDEX=$((WIN_SELECTED_INDEX - 1))
+	local i
+	for((i=0;i<${1:-1};i++)); do
+		if (( WIN_START == 0 && WIN_SELECTED_INDEX == 0 )) ; then
+			return
+		fi
+		if (( WIN_SELECTED_INDEX - WIN_START < ${SCROLL_OFFSET}
+		      && WIN_START > 0)) ; then
+			WIN_START=$((WIN_START-1))
+			WIN_END=$((WIN_END-1))
+		fi
+		WIN_SELECTED_INDEX=$((WIN_SELECTED_INDEX - 1))
+	done
 }
 
 slash-into-dir(){
