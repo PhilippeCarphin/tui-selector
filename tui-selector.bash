@@ -198,10 +198,13 @@ handle-key(){
 			 fi
 			 ;;
 		/) slash-into-dir ;;
-		'~') DIRECTORY="$HOME" ; read-data ; set-choices "" ;;
 		[\ -~]) # Space to Tilde
 			MATCH_EXPR+=${key}
-			set-choices ;;
+			if [[ ${MATCH_EXPR} == ~* ]] ; then
+				DATA=($(compgen -P '~' -u))
+				DATA_NOANSI=($(compgen -P '~' -u))
+			fi
+			set-choices "${MATCH_EXPR}" ;;
 		*) if [[ -n ${key_map[$key]:-} ]] ; then
 			MESSAGE="Unhandled key $(printf "%q" "${key_map[$key]}")"
 		else
@@ -329,6 +332,18 @@ slash-into-dir(){
 
 
 into-dir(){
+	case ${MATCH_EXPR} in
+		..) out-from-dir ; return ;;
+		'~') DIRECTORY=$HOME ; MATCH_EXPR='' ; read-data ; set-choices "" ; return ;;
+		'~'*) d=$(eval echo $MATCH_EXPR);
+		      if [[ ${d} == ~* ]] ; then
+			      MESSAGE="No such user ${MATCH_EXPR}"
+			      return
+		      fi
+		      DIRECTORY=$d ; MATCH_EXPR='' ; read-data; set-choices "" ; return
+		      ;;
+	esac
+
 	if [[ ${MATCH_EXPR} == .. ]] ; then
 		out-from-dir
 		return
@@ -484,9 +499,14 @@ output-selected-filename(){
 	if [[ ${WIN_SELECTED_INDEX} == none ]] ; then
 		return
 	fi
-	local filename
-	read _ _ _ _ _ _ _ _ filename _ <<<${DATA_NOANSI[CHOICES[WIN_SELECTED_INDEX]]}
-	echo "${DIRECTORY:+${DIRECTORY}/}${filename}"
+	local choice=${DATA_NOANSI[CHOICES[WIN_SELECTED_INDEX]]}
+	if [[ "${choice}" == ~* ]] ; then
+		echo ${choice}
+	else
+		local filename
+		read _ _ _ _ _ _ _ _ filename _ <<< ${choice}
+		echo "${DIRECTORY:+${DIRECTORY}/}${filename}"
+	fi
 }
 
 ################################################################################
