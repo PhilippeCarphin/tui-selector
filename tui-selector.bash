@@ -130,7 +130,7 @@ display-help(){
 	buf_cmove ${x} $((y++))
 	buf_printf "${color}\u251C${bars}\u2524\033[0m"
 	buf_cmove ${x} $((y++))
-	buf_printf "${color}\u2502 %-$((width-3))s\u2502\033[0m" "Scroll with C-n,C-p or arrow keys q,C-h to quit" 
+	buf_printf "${color}\u2502 %-$((width-3))s\u2502\033[0m" "Scroll with C-n,C-p or arrow keys q,C-h,C-c,C-g to quit"
 	buf_cmove ${x} $((y++))
 	buf_printf "${color}\u2570${bars}\u256F\033[0m"
 	buf_send
@@ -158,7 +158,7 @@ help-handle-key(){
 				'[A') help-selection-up ;; # up arrow
 				'[B') help-selection-down ;; # down arrow
 			esac ;;
-		q|$'\b') return 1 ;;
+		q|$'\b'|$'\003'|$'\a') return 1 ;;
 	esac
 }
 
