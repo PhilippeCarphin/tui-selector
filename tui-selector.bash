@@ -223,15 +223,19 @@ display-model(){
 	local width=$((REGION_X1 - REGION_X0))
 	buf_cmove ${REGION_X0} $((y++))
 	buf_clearline
-	buf_printf "Message %s" "${MESSAGE}"
-	MESSAGE=""
+	if [[ -n ${MESSAGE} ]] ; then
+		buf_printf "Message: %s" "${MESSAGE}"
+		MESSAGE=""
+	else
+		buf_printf "tui-selector: Press 'C-h' to display help"
+	fi
 
-	# Display current directory
+	# Display CURRENT_DIRECTORY and MATCH_EXPR
 	buf_cmove ${REGION_X0} $((y++))
-	buf_printf "\033[KDirectory: %-20s | Match Expr : %s" \
-		   "${DIRECTORY}" "${MATCH_EXPR}_"
+	buf_printf "\033[KDirectory: \033[48;5;237;1;32m%-20s\033[0m | Match Expr : \033[1;32;48;5;237m%s\033[0m_" \
+		   "${DIRECTORY}" "${MATCH_EXPR}"
 
-	# Display current match expr
+	# Display current choices
 	local w=${WIN_START} color scroll_start scroll_end
 	if [[ "${WIN_SELECTED_INDEX}" != none ]] ; then
 		scroll_start=$((WIN_START+WIN_START*WIN_HEIGHT/${#CHOICES[@]}))
@@ -350,7 +354,7 @@ into-dir(){
 	fi
 
 	if [[ ${WIN_SELECTED_INDEX} == none ]] ; then
-		MESSAGE="into-dir: no item selected"
+		MESSAGE="into-dir: no item selected (MATCH_EXPR='${MATCH_EXPR}')"
 		return
 	fi
 
