@@ -201,8 +201,7 @@ handle-key(){
 		[\ -~]) # Space to Tilde
 			MATCH_EXPR+=${key}
 			if [[ ${MATCH_EXPR} == ~* ]] ; then
-				DATA=($(compgen -P '~' -u))
-				DATA_NOANSI=($(compgen -P '~' -u))
+				read-data-tilde ${MATCH_EXPR}
 			fi
 			set-choices "${MATCH_EXPR}" ;;
 		*) if [[ -n ${key_map[$key]:-} ]] ; then
@@ -230,7 +229,7 @@ display-model(){
 		buf_printf "tui-selector: Press 'C-h' to display help"
 	fi
 
-	# Display CURRENT_DIRECTORY and MATCH_EXPR
+	# Display current directory
 	buf_cmove ${REGION_X0} $((y++))
 	buf_printf "\033[KDirectory: \033[48;5;237;1;32m%-20s\033[0m | Match Expr : \033[1;32;48;5;237m%s\033[0m_" \
 		   "${DIRECTORY}" "${MATCH_EXPR}"
@@ -336,15 +335,17 @@ slash-into-dir(){
 
 
 into-dir(){
+	local d
 	case ${MATCH_EXPR} in
 		..) out-from-dir ; return ;;
 		'~') DIRECTORY=$HOME ; MATCH_EXPR='' ; read-data ; set-choices "" ; return ;;
-		'~'*) d=$(eval echo $MATCH_EXPR);
+		'~'*) choice=(${DATA_NOANSI[${CHOICES[WIN_SELECTED_INDEX]}]})
+		      d=($(eval echo ${choice[0]}));
 		      if [[ ${d} == ~* ]] ; then
 			      MESSAGE="No such user ${MATCH_EXPR}"
 			      return
 		      fi
-		      DIRECTORY=$d ; MATCH_EXPR='' ; read-data; set-choices "" ; return
+		      DIRECTORY=${choice[0]} ; MATCH_EXPR='' ; read-data; set-choices "" ; return
 		      ;;
 	esac
 
@@ -411,12 +412,38 @@ migrate-directory-component-to-match-expr(){
 # Choices and data
 ################################################################################
 read-data(){
-	readarray -t DATA < <(ls -lht ${HIDDEN_FILES:+-A} --color=always "${DIRECTORY:-.}/" \
+	local lsdir=$(eval echo ${DIRECTORY:-.}/)
+	readarray -t DATA < <(ls -lht ${HIDDEN_FILES:+-A} --color=always "${lsdir}/" \
 				| tail -n +2 \
 				| sed -e 's/\x1b\[0m//g' -e 's/\x1b\[39;49m/\x1b\[39m/')
 	# Doing LS twice is sad but not as sad as how slow the above loop is
 	# when there are thousands of files in the directory.
-	readarray -t DATA_NOANSI < <(ls -lht "${DIRECTORY:-.}/" | tail -n +2)
+	readarray -t DATA_NOANSI < <(ls -lht "${lsdir}/" | tail -n +2)
+}
+read-data-tilde(){
+	local users=()
+	local names=()
+	local max_user=0
+	while IFS=: read user _ _ _ name home shell; do
+		users+=("${user}")
+		names+=("${name}")
+		if (( ${#user} > max_user )) ; then
+			max_user=${#user}
+		fi
+	done < <(getent passwd)
+	DATA=()
+	DATA_NOANSI=()
+	local i
+	for((i=0;i<${#users[@]};i++)); do
+		local comp
+		local comp_noansi
+		printf -v comp "\033[1m%-${max_user}s\033[22m (%s)" "~${users[i]}" "${names[i]}"
+		printf -v comp_noansi "%-${max_user}s (%s)" "~${users[i]}" "${names[i]}"
+
+		DATA+=("${comp}")
+		DATA_NOANSI+=("${comp_noansi}")
+	done
+
 }
 
 set-choices(){
@@ -503,12 +530,12 @@ output-selected-filename(){
 	if [[ ${WIN_SELECTED_INDEX} == none ]] ; then
 		return
 	fi
-	local choice=${DATA_NOANSI[CHOICES[WIN_SELECTED_INDEX]]}
+	local choice=(${DATA_NOANSI[CHOICES[WIN_SELECTED_INDEX]]})
 	if [[ "${choice}" == ~* ]] ; then
-		echo ${choice}
+		echo ${choice[0]}
 	else
 		local filename
-		read _ _ _ _ _ _ _ _ filename _ <<< ${choice}
+		read _ _ _ _ _ _ _ _ filename _ <<<${DATA_NOANSI[CHOICES[WIN_SELECTED_INDEX]]}
 		echo "${DIRECTORY:+${DIRECTORY}/}${filename}"
 	fi
 }
