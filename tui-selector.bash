@@ -415,10 +415,13 @@ migrate-directory-component-to-match-expr(){
 # Choices and data
 ################################################################################
 read-data(){
+	local re_reset_all='\x1b\[0m'
+	local re_reset_fg_bg='\x1b\[39;49m'
+	local re_reset_fg='\x1b\[39m'
 	local lsdir=$(eval echo ${DIRECTORY:-.}/)
 	readarray -t DATA < <(ls -lht ${HIDDEN_FILES:+-A} --color=always "${lsdir}/" \
 				| tail -n +2 \
-				| sed -e 's/\x1b\[0m//g' -e 's/\x1b\[39;49m/\x1b\[39m/')
+				| sed -e "s/${re_reset_all}//g" -e "s/${re_reset_fg_bg}/${re_reset_fg}/")
 	# Doing LS twice is sad but not as sad as how slow the above loop is
 	# when there are thousands of files in the directory.
 	readarray -t DATA_NOANSI < <(ls -lht "${lsdir}/" | tail -n +2)
