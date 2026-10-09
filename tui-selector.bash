@@ -41,15 +41,18 @@ WIN_HEIGHT=
 MESSAGE=""
 
 HELP_LINES=(
-	"selection-up:   C-p, up-arrow"
-	"selection-down: C-p, down-arrow"
+	"selection-up:   C-p, up-arrow, C-u (4 at a time)"
+	"selection-down: C-p, down-arrow, C-d (4 at a time)"
 	"into-dir:       C-f, right-arrow, tab, /"
 	"parent-dir:     C-b, left-arrow, shift-tab"
-	"toggle-hidden:  C-d"
+	"toggle-hidden:  C-t"
 	""
-	"exit with selection:     enter"
-	"exit without selection:  ESC, C-c, C-k"
+	"exit with selection:     ENTER"
+	"exit without selection:  ESC, C-c, C-g, C-k"
 	"add to match expression: Normal keys"
+	""
+	"NOTES:"
+	"- if directory is empty, '/' goes to root"
 )
 HELP_WIN_HEIGHT=${#HELP_LINES[@]}
 
@@ -179,7 +182,7 @@ handle-key(){
 		# need to swallow anything that came a very short time after
 		# C-h (probably depends on stty settings)
 		$'\b') help-loop ;;
-		$'\004') toggle-hidden-files ;;
+		$'\024') toggle-hidden-files ;;
 		$'\E') read -t 0.1 -s seq || true
 			case $seq in
 				'[A') selection-up ;; # up arrow
